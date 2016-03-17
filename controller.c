@@ -106,6 +106,11 @@ void parse_flags(int argc, char **argv,
     }
 }
 
+/*
+ * TODO: Update comments
+ * TODO: Explain the +1 reasons - waste of memory < (might) readability
+ * TODO: Tidy-up the init part, looks a bit messy
+ */
 int main(int argc, char **argv)
 {
     long i;
@@ -192,6 +197,11 @@ void *dispatcher(void *arg)
                 printf("floor button pressed: floor %d, type %d\n", event.desc.fbp.floor,
                         (int) event.desc.fbp.type);
             }
+
+            /*
+             * TODO: Call ranking function, compare socrese between possible
+             * elevators, enqueue new destination event for the best elevator
+             */
             break;
         case CabinButton:
             if (verbose) {
@@ -210,16 +220,25 @@ void *dispatcher(void *arg)
                 printf("cabin position: cabin %d, position %d\n", event.desc.cp.cabin,
                         (int) event.desc.cp.position);
             }
+
+            /* TODO: Route to correct elevator, no need to do anything else */
+
             break;
         case Speed:
             if (verbose) {
                 printf("speed %f\n", event.desc.s.speed);
             }
+            
+            /*
+             * TODO: Examine if different strategies has to be implemented
+             * depending on the elevators speeds. Perhaps breaking out the
+             * calculations on which elevator is best fitted for handling
+             * a floor button request to a spearate thread is needed for
+             * higher speeds??
+             */
             break;
         case Error:
-            if (verbose) {
                 printf("error: \"%s\"\n", event.desc.e.str);
-            }
             break;
         }
     }
