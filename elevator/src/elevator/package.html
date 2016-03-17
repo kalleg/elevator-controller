@@ -1,0 +1,51 @@
+<html>
+<head>
+<title>elevator package</title>
+<!--
+
+  Copyright 2001 Vlad Vlassov, IMIT/KTH, Stockholm, Sweden.  All Rights Reserved.
+
+-->
+</head>
+<body bgcolor="white">
+
+Provides classes and interfaces for the Elevators application which models the hardware
+of elevators (motors, cabins, doors, scale, inside and floor buttons). The primary class
+of the application is <a href="Elevators.html">Elevators</a>. The application
+is structured in the MVC (Model-View-Cotroller) way, though the Elevators
+provides only a Model and a View components. A controller program can be connected
+to the Elevators via standard input/output, TCP sock connections or Java RMI.
+<p>The Model part of elevators represented by the <a href="Elevator.html">Elevator</a> class
+which holds and maintains state of motors, doors and scales of elevators.
+<p>The View part of elevators constructed of the following classes which
+display the elevators and output their states on the standard
+output, a TCP socket or via Java RMI:
+<ul>
+<li><a href="ElevatorGUI.html">ElevatorGUI</a>
+    - An object with this class is created for building
+    the graphical widgets of the application, for displaying elevators and buttons.
+<li><a href="ElevatorGraphics.html">ElevatorGraphics</a>
+    - An object with this class animates moving elevators.
+    The animation is timed by the application timer created by the
+    <code>ElevatorGUI</code> object.
+<li><a href="ElevatorIO.html">ElevatorIO</a>
+    - An object of this class is responsible for input/output of the elevator
+      state, i.e. the Model, via standard input/output, TCP sockets and Java RMI
+      In the last case, the object servers as an interface between the Model,
+      i.e. <a href="Elevator.html">Elevator</a> objects, and the
+      <code>elevator.rmi.MakeAll</code> class which allows controlling of
+      elevators via Java RMI.
+<li>classes and interfaces of the
+<a href="rmi/package-summary.html">elevator.rmi</a>
+and <a href="rmi/impl/package-summary.html">elevator.rmi.impl</a>
+packages that are used to control elevators via Java RMI.
+</ul>
+As the Controller part is actually missing, the application provides a way to
+connect a Controller program via standard input, TCP sockets or via Java RMI.
+Thus, the Elevators is controlled via GUI (inside and floor buttons, time speed slider),
+and by commands sent to the application via standard input, a TCP socket connection
+or Java RMI.
+See <a href="../doc/elevator/Elevators.html">Elevators</a> for more
+details about the Elevators application.
+</body>
+</html>

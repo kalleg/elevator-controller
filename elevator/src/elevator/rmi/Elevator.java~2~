@@ -1,0 +1,76 @@
+package elevator.rmi;
+
+/**
+ * Title:        Green Elevator
+ * Description:  Green Elevator, 2G1915
+ * Copyright:    Copyright (c) 2001
+ * Company:      IMIT/KTH
+ * @author Vlad Vlassov
+ * @version 1.0
+ */
+/**
+ * The remote interface for controlling all components of one elevator,
+ * i.e. a motor, a scale (level indicator) and a door, via RMI.
+ * The interface extends <code>Motor</code>, <code>Door</code> and
+ * <code>Scale</code> interfaces.
+ * <p>The <code>Elevator</code> remote interface can be used to start moving the
+ * elevator up or down, to stop the elevator, to close/open the elevator's door,
+ * to get a current position of the elevator, and to set/get a value of the scale of
+ * the elevator.
+ * The <code>getElevator()</code> static method
+ * of the <code>elevator.rmi.MakeAll</code> class is invoked to get a remote
+ * reference to the <code>Elevator</code> object.
+ * For example:
+ * <p><blockquote><pre>
+ *    MakeAll.init(localhost);
+ *     ...
+ *    // move the 3rd elevator up to the 5th floor
+ *    Elevator e3 = MakeAll.getElevator(3);
+ *    float where = e3.getPosition();
+ *    e3.up();
+ *    do {
+ *      e3.setScalePosition((int)where);
+ *      sleep(10);
+ *    } while ((where = e3.whereIs()) < 4.888);
+ *    e3.stop();
+ *    e3.setScalePosition(5);
+ *    e3.open();
+ *    sleep(3000);
+ *    e3.close();
+ * </pre></blockquote>
+ * It is worth noting that an object with the <code>elevator.rmi.Elevator</code>
+ * interface allows controlling all components of the elevator such as the
+ * motor, the scale, the door, and the button event listeners,
+ * whereas an object with the <code>elevator.rmi.Motor</code> interface allows
+ * controlling only the motor, an object with the <code>elevator.rmi.Door</code>
+ * interface allows controlling only the door and an object with the
+ * <code>elevator.rmi.Scale</code> interface allows controlling only the scale
+ * of one elevator.
+ * <p>The interfaces <code>elevator.rmi.Motors</code>,
+ * <code>elevator.rmi.Doors</code>, <code>elevator.rmi.Scales</code> allow
+ * controlling all motors, all doors and all scales of all elevators,
+ * respectively. By analogy, the interface
+ * <code>elevator.rmi.AllInsideButtons</code> allows adding action listeners to
+ * the inside button of all elevators, a group of elevator or one elevator,
+ * whereas the interface <code>elevator.rmi.InsideButtons</code> adds
+ * listener(s) to inside buttons of only one elevator.
+ * <p>The interface <code>elevator.rmi.Elevators</code> allows controlling all
+ * components (motors, doors, scales and button listeners) of all elevators via
+ * one object.
+ * <p>Thus, different interfaces provide different level of granularity in
+ * controlling of elevators. Choice of the interface(s) for an elevator control
+ * multithreaded program should depend on granularity of threads controlling
+ * elevators and/or their different components.
+ * @author Vlad Vlassov, IMIT/KTH, Stockholm, Sweden
+ * @version 1.0
+ * @see     elevator.rmi.MakeAll
+ * @see     elevator.rmi.Motor
+ * @see     elevator.rmi.Door
+ * @see     elevator.rmi.Scale
+ * @see     elevator.rmi.Motors
+ * @see     elevator.rmi.Doors
+ * @see     elevator.rmi.Scales
+ * @see     elevator.rmi.Elevators
+ */
+public interface Elevator extends Motor, Door, Scale {
+}

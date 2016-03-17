@@ -1,0 +1,38 @@
+<html>
+<head>
+<title>elevator.rmi.impl package</title>
+<!--
+
+  Copyright 2001 Vlad Vlassov, IMIT/KTH, Stockholm, Sweden.  All Rights Reserved.
+
+-->
+</head>
+<body bgcolor="white">
+
+Provides classes implementing remote interfaces defined in the
+<a href="../rmi/package-summary.html">elevator.rmi</a> package
+for controlling components of elevators (motors, doors and scales) and
+for monitoring elevator and floor buttons as well as positions of moving elevators
+via Java RMI.
+<p>The "primary" class among these classes is the <a href="GetAllImpl.html">GetAllImpl</a>
+class. This class implements the <a href="..\GetAll.html">elevator.rmi.GetAll</a> interface
+used by the <a href="../MakeAll.html">MakeAll</a> class to obtain remote references
+(stubs) to components of elevators.
+An object with the GetAllImpl class is created when the Elevators application starts
+with the "-rmi" option and a reference to the GetAllImpl object with the
+GetAll remote interface is bound at the rmiregistry to the "GetAll" name.
+Any static method of the
+<a href="../MakeAll.html">MakeAll</a> class used at a controller application
+looks up the GetAll reference at the rmiregistry (if it's not found yet by some
+other method) and uses the obtained stub to get a remote reference(s) to elevator components
+such as motors, doors, scales with appropriate interfaces such as Motor, Door, Elevator,
+defined in the <a href="../rmi/package-summary.html">elevator.rmi</a> package.
+<p>Objects (servants) with classes implementing these remote interfaces
+(MotorImpl, DoorImp, etc.) are created by the GetAllImpl object on demand.
+When a servant receives a control command from the controller, it uses the
+<a href="../../ElevatorIO.html">ElevatorIO</a> object to get or to alter
+the state of the target elevator component(s). The state of elevators
+(the Model part of the Elevators application) is represented by the array of
+objects with the <a href="../../Elevator.html">elevator.Elevator</a> class .
+</body>
+</html>

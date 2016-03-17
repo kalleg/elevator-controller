@@ -1,0 +1,43 @@
+<html>
+<head>
+<title>elevator.demo package</title>
+<!--
+
+  Copyright 2001 Vlad Vlassov, IMIT/KTH, Stockholm, Sweden.  All Rights Reserved.
+
+-->
+</head>
+<body bgcolor="white">
+
+Contains the primary class of the AminationDemo application which illustrates a
+way of controlling the <code>elevator.Elevators</code> application via Java RMI.
+The application submits a sequence
+of control commands separated with a 2-3 sec time delay to the components of
+<a href="../Elevators.html">elevator.Elevators</a> application (motors, doors and scales)
+via java RMI which forces the elevators to open/close doors, to move upwards/downwards.
+The object with the <code>AminationDemo</code> class uses static methods of
+the <code>elevator.rmi.MakeAll</code> class to get remote
+references to the components of elevators and to control the components.
+<p>To run the application, first, start rmiregistry, then Elevators and, finally,
+AnimationDemo. It's recommended to start Elevators and AnimationDemo in different
+windows so that you can keep Elevators running when you restart the demo
+or when you start your own control/animation program.
+To see result of AnimationDemo, you should look at Elevators.
+<p>For example (assume that the Elevators is located under "D:\home\vlad\edu\elevator\"),
+<p><blockquote><pre>
+C:\>start rmiregistry
+C:\>java -classpath D:\home\vlad\edu\elevator\lib\elevator.jar -Djava.security.policy=D:\home\vlad\edu\elevator\lib\rmi.policy -Djava.rmi.server.codebase=file:d:\home\vlad\edu\elevator\lib\elevator.jar elevator.Elevators -top 5 -number 5 -rmi
+C:\>java -classpath D:\home\vlad\edu\elevator\lib\elevator.jar elevator.demo.AnimationDemo
+</pre></blockquote>
+Where <code>rmi.security</code> is a text file that should specify the following permission:
+<p><blockquote><pre>
+grant {
+// Allow everything for now
+permission java.security.AllPermission;
+};
+</pre></blockquote>
+The <code>elevator.jar</code> file is a JAR file that includes all resources
+of the Elevators application including classes and interfaces needed to
+develop a control program with Java RMI.
+</body>
+</html>

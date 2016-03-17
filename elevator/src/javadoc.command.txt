@@ -1,0 +1,2 @@
+D:\home\vlad\edu\elevator\src>
+javadoc -windowtitle "Elevators v1.0" -group "Core Package" elevator -group "Extension Packages (Remote interfaces and servants)" "elevator.rmi*:elevator.rmi.impl.*" -doctitle "Elevators v1.0" -public -sourcepath .\;.\elevator\;.\elevator\rmi\;.\elevator\rmi\impl\ -classpath ..\classes\;..\lib\elevator.jar -d ..\doc -version -author -header "<b>Elevators </b><br>v1.0" @packages.txt

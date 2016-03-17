@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--JBuilder XML Project-->
+<project>
+  <property category="idl" name="Compiler" value="VisiBroker"/>
+  <property category="javaFormatting" name="packageThreshold" value="0"/>
+  <property category="runtime" name="ConfigurationCount" value="5"/>
+  <property category="runtime.0" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner"/>
+  <property category="runtime.0" name="application.class" value="elevator.Elevators"/>
+  <property category="runtime.0" name="application.parameters" value="-top 5 -number 5 -nopos"/>
+  <property category="runtime.0" name="appserver.ejbJarsSaved" value="1"/>
+  <property category="runtime.0" name="appserver.parameters" value="-jts -jns -jss -jdb"/>
+  <property category="runtime.0" name="appserver.servername" value="ejbcontainer"/>
+  <property category="runtime.0" name="appserver.vmparameters" value="-Dvbroker.agent.port=14000 -Djava.library.path=D:/Borland/AppServer/lib;D:/Borland/AppServer/bin"/>
+  <property category="runtime.0" name="jsprunner.launchuri" value="/"/>
+  <property category="runtime.1" name="BuildTargetOnRun" value="com.borland.jbuilder.build.ProjectBuilder$ProjectBuildAction;make"/>
+  <property category="runtime.1" name="ConfigurationName" value="elevatorsRMI"/>
+  <property category="runtime.1" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner"/>
+  <property category="runtime.1" name="application.class" value="elevator.Elevators"/>
+  <property category="runtime.1" name="application.parameters" value="-top 5 -number 3  -rmi"/>
+  <property category="runtime.1" name="application.vmparameters" value="-classpath C:\home\vlad\edu\elevator\classes -Djava.security.policy=C:\home\vlad\edu\elevator\lib\rmi.policy -Djava.rmi.server.codebase=file:C:\home\vlad\edu\elevator\classes"/>
+  <property category="runtime.1" name="appserver.ejbJarsSaved" value="1"/>
+  <property category="runtime.1" name="appserver.parameters" value="-jts -jns -jss -jdb"/>
+  <property category="runtime.1" name="appserver.servername" value="ejbcontainer"/>
+  <property category="runtime.1" name="appserver.vmparameters" value="-Dvbroker.agent.port=14000 -Djava.library.path=D:/Borland/AppServer/lib;D:/Borland/AppServer/bin"/>
+  <property category="runtime.1" name="jsprunner.launchuri" value="/"/>
+  <property category="runtime.2" name="BuildTargetOnRun" value="com.borland.jbuilder.build.ProjectBuilder$ProjectBuildAction;make"/>
+  <property category="runtime.2" name="ConfigurationName" value="demo"/>
+  <property category="runtime.2" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner"/>
+  <property category="runtime.2" name="application.class" value="elevator.demo.AnimationDemo"/>
+  <property category="runtime.2" name="appserver.ejbJarsSaved" value="1"/>
+  <property category="runtime.2" name="appserver.parameters" value="-jts -jns -jss -jdb"/>
+  <property category="runtime.2" name="appserver.servername" value="ejbcontainer"/>
+  <property category="runtime.2" name="appserver.vmparameters" value="-Dvbroker.agent.port=14000 -Djava.library.path=D:/Borland/AppServer/lib;D:/Borland/AppServer/bin"/>
+  <property category="runtime.2" name="jsprunner.launchuri" value="/"/>
+  <property category="runtime.3" name="BuildTargetOnRun" value="&lt;None&gt;"/>
+  <property category="runtime.3" name="ConfigurationName" value="elevatorsTCP"/>
+  <property category="runtime.3" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner"/>
+  <property category="runtime.3" name="application.class" value="elevator.Elevators"/>
+  <property category="runtime.3" name="application.parameters" value="-top 5 -bottom -1 -number 5 -tcp"/>
+  <property category="runtime.3" name="appserver.ejbJarsSaved" value="1"/>
+  <property category="runtime.3" name="appserver.parameters" value="-jts -jns -jss -jdb"/>
+  <property category="runtime.3" name="appserver.servername" value="ejbcontainer"/>
+  <property category="runtime.3" name="appserver.vmparameters" value="-Dvbroker.agent.port=14000 -Djava.library.path=D:/Borland/AppServer/lib;D:/Borland/AppServer/bin"/>
+  <property category="runtime.3" name="jsprunner.launchuri" value="/"/>
+  <property category="runtime.4" name="ConfigurationName" value="elevators nopos"/>
+  <property category="runtime.4" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner"/>
+  <property category="runtime.4" name="application.class" value="elevator.Elevators"/>
+  <property category="runtime.4" name="application.parameters" value="-top 5 -number 5 -nopos"/>
+  <property category="runtime.4" name="appserver.ejbJarsSaved" value="1"/>
+  <property category="runtime.4" name="appserver.parameters" value="-jts -jns -jss -jdb"/>
+  <property category="runtime.4" name="appserver.servername" value="ejbcontainer"/>
+  <property category="runtime.4" name="appserver.vmparameters" value="-Dvbroker.agent.port=14000 -Djava.library.path=D:/Borland/AppServer/lib;D:/Borland/AppServer/bin"/>
+  <property category="runtime.4" name="jsprunner.launchuri" value="/"/>
+  <property category="runtime.5" name="BuildTargetOnRun" value="com.borland.jbuilder.build.ProjectBuilder$ProjectBuildAction;make"/>
+  <property category="runtime.5" name="ConfigurationName" value="elevators"/>
+  <property category="runtime.5" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner"/>
+  <property category="runtime.5" name="application.class" value="elevator.Elevators"/>
+  <property category="runtime.5" name="application.parameters" value="-top 5 -number 5 -precision 0.005"/>
+  <property category="runtime.5" name="appserver.ejbJarsSaved" value="1"/>
+  <property category="runtime.5" name="appserver.parameters" value=""/>
+  <property category="runtime.5" name="appserver.servername" value=""/>
+  <property category="runtime.5" name="appserver.vmparameters" value=""/>
+  <property category="runtime.5" name="jsprunner.launchuri" value="/"/>
+  <property category="runtime.5" name="server.arguments" value=""/>
+  <property category="runtime.5" name="server.disableServerClassTracing" value="0"/>
+  <property category="runtime.5" name="server.instance.name" value=""/>
+  <property category="runtime.5" name="server.name" value="Tomcat 3.3"/>
+  <property category="runtime.5" name="server.vmparameters" value=""/>
+  <property category="runtime.5" name="test.harness" value="com.borland.jbuilder.unittest.JBTestRunner"/>
+  <property category="serverservices" name="disabled.services" value="jdatastore"/>
+  <property category="sys" name="BackupPath" value="bak"/>
+  <property category="sys" name="CheckStable" value="1"/>
+  <property category="sys" name="Company" value="IMIT/KTH"/>
+  <property category="sys" name="Copyright" value="Copyright (c) 2001"/>
+  <property category="sys" name="DefaultPath" value="src"/>
+  <property category="sys" name="Description" value="Green Elevator, 2G1915"/>
+  <property category="sys" name="DocPath" value="doc"/>
+  <property category="sys" name="ExcludeClassEnabled" value="0"/>
+  <property category="sys" name="IncludeTestPath" value="1"/>
+  <property category="sys" name="JDK" value="java version 1.4.2_01-b06"/>
+  <property category="sys" name="LastTag" value="0"/>
+  <property category="sys" name="Libraries" value="&lt;No Library&gt;"/>
+  <property category="sys" name="MakeStable" value="0"/>
+  <property category="sys" name="OutPath" value="classes"/>
+  <property category="sys" name="SourcePath" value="src;test"/>
+  <property category="sys" name="TestPath" value="test"/>
+  <property category="sys" name="Title" value="Green Elevator"/>
+  <property category="sys" name="Version" value="1.0"/>
+  <property category="sys" name="WorkingDirectory" value="."/>
+  <node name="Additional Settings" type="Folder">
+    <property category="sys" name="SettingsFolder" value="1"/>
+    <file path="src/elevator/rmi/impl/DoorImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/DoorImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/impl/DoorsImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/DoorsImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/impl/ElevatorImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/ElevatorImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/impl/ElevatorsImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/ElevatorsImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/impl/GetAllImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/GetAllImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/LinkButton.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/LinkButton_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/impl/MotorImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/MotorImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/impl/MotorsImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/MotorsImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/impl/ScaleImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/ScaleImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+    <file path="src/elevator/rmi/impl/ScalesImpl.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="elevator/rmi/impl/ScalesImpl_Stub.java"/>
+      <property category="idl" name="GenerateRMI" value="true"/>
+      <property category="idl" name="OtherRMIOptions" value="-v1.2"/>
+    </file>
+  </node>
+  <node name="Elevators" type="Archive">
+    <property category="archiving" name="archiverClass" value="com.borland.jbuilder.wizard.archive.ApplicationArchiver"/>
+    <property category="archiving" name="contentRules.1" value="I:**/*.*"/>
+    <property category="archiving" name="contentRules.10" value="F:classes/elevator/images/elevatorrope100x100.gif;classes/elevator/images/elevatorrope100x100.gif"/>
+    <property category="archiving" name="contentRules.11" value="F:images/ArrowDown.gif;images/ArrowDown.gif"/>
+    <property category="archiving" name="contentRules.12" value="F:images/ArrowUp.gif;images/ArrowUp.gif"/>
+    <property category="archiving" name="contentRules.13" value="F:images/elevatordoorsopen0.gif;images/elevatordoorsopen0.gif"/>
+    <property category="archiving" name="contentRules.14" value="F:images/elevatordoorsopen1.gif;images/elevatordoorsopen1.gif"/>
+    <property category="archiving" name="contentRules.15" value="F:images/elevatordoorsopen2.gif;images/elevatordoorsopen2.gif"/>
+    <property category="archiving" name="contentRules.16" value="F:images/elevatordoorsopen3.gif;images/elevatordoorsopen3.gif"/>
+    <property category="archiving" name="contentRules.17" value="F:images/elevatordoorsopen4.gif;images/elevatordoorsopen4.gif"/>
+    <property category="archiving" name="contentRules.18" value="F:images/elevatorgrey100x100.gif;images/elevatorgrey100x100.gif"/>
+    <property category="archiving" name="contentRules.19" value="F:images/elevatorrope100x100.gif;images/elevatorrope100x100.gif"/>
+    <property category="archiving" name="contentRules.2" value="F:classes/elevator/images/ArrowDown.gif;classes/elevator/images/ArrowDown.gif"/>
+    <property category="archiving" name="contentRules.3" value="F:classes/elevator/images/ArrowUp.gif;classes/elevator/images/ArrowUp.gif"/>
+    <property category="archiving" name="contentRules.4" value="F:classes/elevator/images/elevatordoorsopen0.gif;classes/elevator/images/elevatordoorsopen0.gif"/>
+    <property category="archiving" name="contentRules.5" value="F:classes/elevator/images/elevatordoorsopen1.gif;classes/elevator/images/elevatordoorsopen1.gif"/>
+    <property category="archiving" name="contentRules.6" value="F:classes/elevator/images/elevatordoorsopen2.gif;classes/elevator/images/elevatordoorsopen2.gif"/>
+    <property category="archiving" name="contentRules.7" value="F:classes/elevator/images/elevatordoorsopen3.gif;classes/elevator/images/elevatordoorsopen3.gif"/>
+    <property category="archiving" name="contentRules.8" value="F:classes/elevator/images/elevatordoorsopen4.gif;classes/elevator/images/elevatordoorsopen4.gif"/>
+    <property category="archiving" name="contentRules.9" value="F:classes/elevator/images/elevatorgrey100x100.gif;classes/elevator/images/elevatorgrey100x100.gif"/>
+    <property category="archiving" name="targetPath" value="lib/elevator.jar"/>
+    <property category="archiving" name="usingRules" value="1"/>
+  </node>
+  <node name="RMI" type="Archive">
+    <property category="archiving" name="contentRules.1" value="I:elevator/rmi/Door.class"/>
+    <property category="archiving" name="contentRules.10" value="I:elevator/rmi/Motor.class"/>
+    <property category="archiving" name="contentRules.11" value="I:elevator/rmi/Motors.class"/>
+    <property category="archiving" name="contentRules.12" value="I:elevator/rmi/RemoteActionListener.class"/>
+    <property category="archiving" name="contentRules.13" value="I:elevator/rmi/Scale.class"/>
+    <property category="archiving" name="contentRules.14" value="I:elevator/rmi/Scales.class"/>
+    <property category="archiving" name="contentRules.15" value="I:elevator/rmi/impl/DoorImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.16" value="I:elevator/rmi/impl/DoorsImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.17" value="I:elevator/rmi/impl/ElevatorImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.18" value="I:elevator/rmi/impl/ElevatorsImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.19" value="I:elevator/rmi/impl/GetAllImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.2" value="I:elevator/rmi/Doors.class"/>
+    <property category="archiving" name="contentRules.20" value="I:elevator/rmi/impl/MotorImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.21" value="I:elevator/rmi/impl/MotorsImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.22" value="I:elevator/rmi/impl/ScaleImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.23" value="I:elevator/rmi/impl/ScalesImpl_Stub.class"/>
+    <property category="archiving" name="contentRules.24" value="F:images/ArrowDown.gif;images/ArrowDown.gif"/>
+    <property category="archiving" name="contentRules.25" value="F:images/ArrowUp.gif;images/ArrowUp.gif"/>
+    <property category="archiving" name="contentRules.26" value="F:images/elevatordoorsopen0.gif;images/elevatordoorsopen0.gif"/>
+    <property category="archiving" name="contentRules.27" value="F:images/elevatordoorsopen1.gif;images/elevatordoorsopen1.gif"/>
+    <property category="archiving" name="contentRules.28" value="F:images/elevatordoorsopen2.gif;images/elevatordoorsopen2.gif"/>
+    <property category="archiving" name="contentRules.29" value="F:images/elevatordoorsopen3.gif;images/elevatordoorsopen3.gif"/>
+    <property category="archiving" name="contentRules.3" value="I:elevator/rmi/Elevator.class"/>
+    <property category="archiving" name="contentRules.30" value="F:images/elevatordoorsopen4.gif;images/elevatordoorsopen4.gif"/>
+    <property category="archiving" name="contentRules.31" value="F:images/elevatorgrey100x100.gif;images/elevatorgrey100x100.gif"/>
+    <property category="archiving" name="contentRules.32" value="F:images/elevatorrope100x100.gif;images/elevatorrope100x100.gif"/>
+    <property category="archiving" name="contentRules.4" value="I:elevator/rmi/Elevators.class"/>
+    <property category="archiving" name="contentRules.5" value="I:elevator/rmi/GetAll.class"/>
+    <property category="archiving" name="contentRules.6" value="I:elevator/rmi/IllegalParamException.class"/>
+    <property category="archiving" name="contentRules.7" value="I:elevator/rmi/LinkButton_Stub.class"/>
+    <property category="archiving" name="contentRules.8" value="I:elevator/rmi/LinkButton.class"/>
+    <property category="archiving" name="contentRules.9" value="I:elevator/rmi/MakeAll.class"/>
+    <property category="archiving" name="extraDeployRoots.1" value="C:elevator.rmi.Door"/>
+    <property category="archiving" name="extraDeployRoots.10" value="C:elevator.rmi.Motor"/>
+    <property category="archiving" name="extraDeployRoots.11" value="C:elevator.rmi.Motors"/>
+    <property category="archiving" name="extraDeployRoots.12" value="C:elevator.rmi.RemoteActionListener"/>
+    <property category="archiving" name="extraDeployRoots.13" value="C:elevator.rmi.Scale"/>
+    <property category="archiving" name="extraDeployRoots.14" value="C:elevator.rmi.Scales"/>
+    <property category="archiving" name="extraDeployRoots.15" value="C:elevator.rmi.impl.DoorImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.16" value="C:elevator.rmi.impl.DoorsImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.17" value="C:elevator.rmi.impl.ElevatorImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.18" value="C:elevator.rmi.impl.ElevatorsImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.19" value="C:elevator.rmi.impl.GetAllImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.2" value="C:elevator.rmi.Doors"/>
+    <property category="archiving" name="extraDeployRoots.20" value="C:elevator.rmi.impl.MotorImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.21" value="C:elevator.rmi.impl.MotorsImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.22" value="C:elevator.rmi.impl.ScaleImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.23" value="C:elevator.rmi.impl.ScalesImpl_Stub"/>
+    <property category="archiving" name="extraDeployRoots.3" value="C:elevator.rmi.Elevator"/>
+    <property category="archiving" name="extraDeployRoots.4" value="C:elevator.rmi.Elevators"/>
+    <property category="archiving" name="extraDeployRoots.5" value="C:elevator.rmi.GetAll"/>
+    <property category="archiving" name="extraDeployRoots.6" value="C:elevator.rmi.IllegalParamException"/>
+    <property category="archiving" name="extraDeployRoots.7" value="C:elevator.rmi.LinkButton_Stub"/>
+    <property category="archiving" name="extraDeployRoots.8" value="C:elevator.rmi.LinkButton"/>
+    <property category="archiving" name="extraDeployRoots.9" value="C:elevator.rmi.MakeAll"/>
+    <property category="archiving" name="includeDeps" value="1"/>
+    <property category="archiving" name="outPathState" value="1"/>
+    <property category="archiving" name="targetPath" value="lib/elevator_rmi.jar"/>
+    <property category="archiving" name="usingRules" value="1"/>
+  </node>
+  <file path="src/elevator/DoorStatus.java"/>
+  <file path="elevator.html"/>
+  <file path="src/elevator/Elevator.java"/>
+  <file path="src/elevator/ElevatorCanvas.java"/>
+  <file path="src/elevator/ElevatorEvents.java"/>
+  <file path="src/elevator/ElevatorGraphics.java"/>
+  <file path="src/elevator/ElevatorGUI.java"/>
+  <file path="src/elevator/ElevatorIO.java"/>
+  <file path="src/elevator/Elevators.java"/>
+  <file path="src/elevator/package.html"/>
+  <file path="src/elevator/demo/package.html"/>
+  <file path="src/elevator/rmi/package.html"/>
+  <file path="src/elevator/rmi/impl/package.html"/>
+  <file path="lib/rmi.policy"/>
+</project>

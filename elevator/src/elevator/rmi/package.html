@@ -1,0 +1,65 @@
+<html>
+<head>
+<title>elevator.rmi package</title>
+<!--
+
+  Copyright 2001 Vlad Vlassov, IMIT/KTH, Stockholm, Sweden.  All Rights Reserved.
+
+-->
+</head>
+<body bgcolor="white">
+
+Provides remote interfaces for controlling and monitoring the
+<code>elevator.Elevators</code> application via Java RMI and a class
+(<code>MakeAll</code>) which is used to obtain remote references
+(stubs) with these interfaces.
+<p>
+These interfaces allows opening and closing doors, starting moving
+elevator cabins upwards and downwards, stopping the cabins, monitoring
+positions of moving elevators and receiving button action events.
+This package contains the following main groups of remote interfaces used to
+control elevator components:
+<ul>
+<li>Interfaces <a href="Door.html">Door</a>, <a href="Motor.html">Motor</a> and
+<a href="Scale.html">Scale</a> for controlling one door, one motor, one scale,
+respectively.
+<li>Interfaces <a href="Doors.html">Doors</a>, <a href="Motors.html">Motors</a>
+and <a href="Scales.html">Scales</a> for controlling a group of doors,
+a group of motors, a group of scales, respectively.
+<li>The interface <a href="Elevator.html">Elevator</a> for controlling one
+elevator (its door, motor and scale).
+<li>The interface <a href="Elevators.html">Elevators</a> for controlling
+a group of elevators (their doors, motors and scales).
+</ul>
+It worth mentioning that the Elevator interface extends Door, Motor and Scale,
+whereas the Elevators interface extends Doors, Motors and Scales interfaces.
+The <code>MakeAll</code> class provides class's methods for obtaining remote
+references (stubs) with interfaces mentioned above for controlling components
+of the Elevators. One stub serializes control commands to the controlled component.
+Which interface to use is a matter of the level of concurrency to be achieved in
+a multithreaded controller.
+For example, one stub with the Doors interface used to control all doors serializes
+commands to the doors and is equivalent to <i>n</i> stubs with the Door interface.
+One stub with the Elevator interface is equivalent to <i>n</i> Door stubs plus
+<i>n</i> Motor stubs plus <i>n</i> Scale stubs. One stub with the Elevators
+interface serializes commands directed to all components of all elevators
+(motors, doors and scales).
+<p>The <code>MakeAll</code> class also provides several static methods
+<code>addFloorListeners</code> and <code>addInsideListeners</code> for adding
+(registering) button listener(s) interesting in receiving action events
+from floor and cabin buttons, respectively. The listeners must implement the
+<code>java.awt.event.ActionListener</code> interface to receive an action events
+from the buttons. The <code>actionPerformed</code> method of the interface is
+invoked on a listener when a button is pressed by the elevator user.
+<p>The <code>MakeAll</code> class also provides several static methods
+<code>addPositionListeners</code> for adding
+"position" listener(s) interesting in monitoring positions of moving elevators.
+By analogy with a button listener, a position listener must implement the
+<code>java.awt.event.ActionListener</code> interface to receive current position
+of moving elevator(s). When the elevator(s) starts moving the listener(s)
+receives a sequence of action events with the current position of the elevator
+at a predefined rate of the elevators' timer (clock).
+<p>Classes implementing all interfaces of this package are grouped in the
+<a href="impl/package-summary.html">elevator.rmi.impl</a> package.
+</body>
+</html>

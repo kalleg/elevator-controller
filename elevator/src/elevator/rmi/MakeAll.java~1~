@@ -1,0 +1,538 @@
+package elevator.rmi;
+
+import java.rmi.Naming;
+import java.rmi.RemoteException;
+import java.net.MalformedURLException;
+import java.rmi.NotBoundException;
+import java.awt.event.ActionListener;
+
+/**
+ * Title:        Green Elevator
+ * Description:  Green Elevator, 2G1915
+ * Copyright:    Copyright (c) 2001
+ * Company:      IMIT/KTH
+ * @author Vlad Vlassov
+ * @version 1.0
+ */
+/**
+ * The <code>MakeAll</code> class provides class's methods for obtaining
+ * references to remote objects in the remote Elevators application and for
+ * adding listeners interesting in processing action
+ * event from elevator and floor buttons. The references obtained can be used
+ * for controlling different components of the Elevators such as motors, doors,
+ * scales.
+ * <p>The <code>MakeAll</code> class allows obtaining references to remote
+ * objects with the folowing remote interfaces:
+ * <p>
+ * <center><table border="1">
+ * <tr><td><code>elevator.rmi.Motor</code><td>To control a motor of one elevator:
+ *                                            to start moving the elevator up
+ *                                            or down, to stop the elevator
+ *                                            and to test a current position
+ *                                            of the elevator.</tr>
+ * <tr><td><code>elevator.rmi.Door</code><td>To control a door of one elevator:
+ *                                           to open/close the door.</tr>
+ * <tr><td><code>elevator.rmi.Scale</code><td>To access a scale (level indicarot)
+ *                                            of one elevator: to set/get value
+ *                                            of the scale.</tr>
+ * <tr><td><code>elevator.rmi.Motors</code><td>To control motors of all elevators,
+ *                                             a group of elevators,
+ *                                             or one elevator.</tr>
+ * <tr><td><code>elevator.rmi.Doors</code><td>To control doors of all elevators,
+ *                                             a group of elevators,
+ *                                             or one elevator.</tr>
+ * <tr><td><code>elevator.rmi.Scales</code><td>To access scales of all elevators,
+ *                                             a group of elevators,
+ *                                             or one elevator.</tr>
+ * </table> </center>
+ * <p>
+ * <ul>
+ * <p>The <code>MakeAll</code> class also allows adding listeners to inside and
+ * floor buttons interesting in receiving action events from the buttons. An
+ * action command associated with a floor button is "b <i>floor direction</i>", where
+ * <i>floor</i> is a number of the floor where the button is located, <i>direction</i>
+ * is the direction, up or down, assigned to the button. An action command associated with a inside
+ * panel button is "p <i>elevator floor</i>", where <i>elevator</i> is the number
+ * of the elevator where the panel is located and <i>floor</i>
+ * <p>To specifies a name of the host where the RMI registry is located and
+ * a number of the port on which the registry accepts calls, the
+ * <code>init()</code> static methods of the <code>MakeAll</code>
+ * class must be called once in the application, before calling any other
+ * methods of the class. Both the host name and the port number are optional
+ * parameters. If a host name is omitted, the name defaults to the local host.
+ * If a port number is omitted, then the number defaults to the registry default
+ * port number 1099.
+ * For example:
+  * <p><blockquote><pre>
+ *    MakeAll.init("my.nada.kth.se");
+ *     ...
+ *    int numberOfElevators = MakeAll.getNumberOfElevators;
+ *    int number of Floors = MakeAll.getNumberOfFloors;
+ *    MakeAll.addFloorListener(this); //listen all floor buttons
+ *    MakeAll.addInsideListener(this); //listen inside buttons of all elevators
+ *    Elevators elevators = MakeAll.getElevators(); // get one reference to all
+ *    ...
+ *    // move the 3rd elevator up to the 5th floor
+ *    float where = elevators.getPosition(3);
+ *    elevators.up(3);
+ *    do {
+ *      elevators.setScalePosition(3, (int)where);
+ *      sleep(10);
+ *    } while ((where = elevators.whereIs(3)) < 4.888)
+ *    elevators.stop(3);
+ *    elevators.setScalePosition(3, 5);
+ *    elevators.open(3);
+ *    sleep(3000);
+ *    elevators.close(3);
+ *    ...
+ *    public void actionPerformed(ActionEvent e) {
+ *      String actionCommand = e.getActionCommand();
+ *      // the action command
+ *      // should look like "b floor direction" in the case of a floor button,
+ *      // or "p elevator floor" is the case of an inside panel button.
+ *      System.out.println(actionCommand);
+ *    }
+ * </pre></blockquote>
+ * @author Vlad Vlassov, IMIT/KTH, Stockholm, Sweden
+ * @version 1.0
+ * @see     elevator.rmi.Motor
+ * @see     elevator.rmi.Door
+ * @see     elevator.rmi.Scale
+ * @see     elevator.rmi.InsideButtons
+ * @see     elevator.rmi.Motors
+ * @see     elevator.rmi.Doors
+ * @see     elevator.rmi.Scales
+ * @see     elevator.rmi.AllInsideButtons
+ * @see     elevator.rmi.Elevator
+ * @see     elevator.rmi.Elevators
+ */
+public final class MakeAll {
+  /**
+   * "Primary" reference to the Elevators application
+   */
+  private static GetAll getAll = null;
+  private static int numberOfElevators, numberOfFloors, topFloor, groundFloor;
+  private static String host;
+  /**
+   * Private "cache" of references that might be requested
+   */
+  private static Door[] door = null;
+  private static Motor[] motor = null;
+  private static Scale[] scale = null;
+  private static Doors doors = null;
+  private static Motors motors = null;
+  private static Scales scales = null;
+  private static Elevator[] elevator = null;
+  private static Elevators elevators = null;
+  private static LinkButton[] insideButtons = null;
+  private static LinkButton[] floorButton = null;
+
+    /**
+     * Disallow anyone from creating one of <code>MakeAll</code>
+     */
+  private MakeAll() { }
+  /**
+   * Adds an <code>ActionListener</code> to receive events from all floor buttons.
+   * @param listener <code>ActionListener</code> to be added.
+   * @throws RemoteException if failed to add the listener
+   * @throws MalformedURLException if failed to contruct an URL of Elevators
+   * @throws NotBoundException is failed to obtain a reference to the Elevators
+   */
+  public static void addFloorListener(ActionListener listener) throws RemoteException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (floorButton == null) floorButton = new LinkButton[numberOfFloors];
+    for (int i = numberOfFloors - 1, f = topFloor; i >= 0; i--, f--) {
+      if (floorButton[i] == null) {
+        floorButton[i] = new LinkButton();
+        getAll.makeFloorListener(f, (RemoteActionListener)floorButton[i]);
+      }
+      floorButton[i].addActionListener(listener);
+    }
+  }
+  /**
+   * Adds an array of <code>ActionListener</code> to receive events from a group
+   * of floor buttons: one listener per a floor.
+   * @param floor An array of integer floor numbers where the floor buttons are located
+   * @param listener An array of <code>ActionListener</code> to be added.
+   * @throws RemoteException if failed to add the listeners
+   * @throws MalformedURLException if failed to contruct an URL of Elevators
+   * @throws NotBoundException is failed to obtain a reference to the Elevators
+   */
+  public static void addFloorListener(int[] floor, ActionListener[] listener)
+      throws RemoteException, IllegalParamException, MalformedURLException, NotBoundException  {
+    if (listener.length < floor.length) throw new IllegalParamException();
+    for (int i = floor.length - 1; i >= 0; i--) addFloorListener(floor[i], listener[i]);
+  }
+  /**
+   * Adds <code>ActionListener</code> to receive events from a group
+   * of floor buttons: one listener per all floors.
+   * @param floor An array of integer floor numbers where the floor buttons are located
+   * @param listener <code>ActionListener</code> to be added.
+   * @throws RemoteException if failed to add the listener
+   * @throws MalformedURLException if failed to contruct an URL of Elevators
+   * @throws NotBoundException is failed to obtain a reference to the Elevators
+   */
+  public static void addFloorListener(int[] floor, ActionListener listener)
+      throws RemoteException, IllegalParamException, MalformedURLException, NotBoundException  {
+    for (int i = floor.length - 1; i >= 0; i--) addFloorListener(floor[i], listener);
+  }
+  /**
+   * Adds <code>ActionListener</code> to receive events from floor buttons located
+   * on a given floor.
+   * @param floor The floor number where the floor buttons are located
+   * @param listener <code>ActionListener</code> to be added.
+   * @throws RemoteException if failed to add the listener
+   * @throws MalformedURLException if failed to contruct an URL of Elevators
+   * @throws NotBoundException is failed to obtain a reference to the Elevators
+   */
+  public static void addFloorListener(int floor, ActionListener listener)
+     throws RemoteException, IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (floor > topFloor || floor < groundFloor) throw new IllegalParamException();
+    if (floorButton == null) floorButton = new LinkButton[numberOfFloors];
+    if (floorButton[floor - 1] == null) {
+      floorButton[floor - 1] = new LinkButton();
+      getAll.makeFloorListener(floor, (RemoteActionListener)floorButton[floor - 1]);
+    }
+    floorButton[floor - 1].addActionListener(listener);
+  }
+  public static void addInsideListener(ActionListener listener)
+        throws RemoteException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (insideButtons == null) insideButtons = new LinkButton[numberOfElevators];
+    for (int i = numberOfElevators - 1; i >= 0; i--) {
+      if (insideButtons[i] == null) {
+        insideButtons[i] = new LinkButton();
+        getAll.makeInsideListener(i + 1, (RemoteActionListener)insideButtons[i]);
+      }
+      insideButtons[i].addActionListener(listener);
+    }
+  }
+  public static void addInsideListener(int[] number, ActionListener[] listener)
+      throws RemoteException, IllegalParamException, MalformedURLException, NotBoundException  {
+    if (listener.length < number.length) throw new IllegalParamException();
+    for (int i = number.length - 1; i >= 0; i--) addInsideListener(number[i], listener[i]);
+  }
+
+  public static void addInsideListener(int[] number, ActionListener listener)
+      throws RemoteException, IllegalParamException, MalformedURLException, NotBoundException  {
+    for (int i = number.length - 1; i >= 0; i--) addInsideListener(number[i], listener);
+
+  }
+  public static void addInsideListener(int number, ActionListener listener)
+     throws RemoteException, IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (number > numberOfElevators || number < 1) throw new IllegalParamException();
+    if (insideButtons == null) insideButtons = new LinkButton[numberOfElevators];
+    if (insideButtons[number - 1] == null) {
+      insideButtons[number - 1] = new LinkButton();
+      getAll.makeInsideListener(number, (RemoteActionListener)insideButtons[number - 1]);
+    }
+    insideButtons[number - 1].addActionListener(listener);
+  }
+  /**
+   * Returns an object with the <code>Door</code> interface which is
+   *    used for controlling a door of the elevator with the given number
+   *    via Java RMI.
+   * @param number An integer number of elevator whose <code>Door</code>
+   *     interface to get.
+   * @return An object with the <code>Door</code> interface.
+   * @throws RemoteException if failed to get an <code>Door</code> object.
+   * @throws IllegalParamException if <code>number</code> is not a legal
+   *    elevator number.
+   * @see elevator.rmi.Door
+   */
+  public static Door getDoor(int number) throws RemoteException,
+        IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (number > numberOfElevators || number < 1) throw new IllegalParamException();
+    if (door == null) door = new Door[numberOfElevators];
+    if (door[number - 1] == null) door[number - 1] = getAll.getDoor(number);
+    return door[number - 1];
+  }
+  /**
+   * Returns an array of objects with the <code>Door</code>
+   *    interface which is used for controlling a door of the elevator with the
+   *    given number via Java RMI.
+   * @param number An array of integer numbers of elevators whose
+   *     <code>Door</code> interfaces to get.
+   * @return An array of objects with the <code>Door</code> interface.
+   * @throws RemoteException if failed to get <code>Door</code> objects.
+   * @throws IllegalParamException if some number(s) in <code>number</code> is
+   *    not a legal elevator number.
+   * @see elevator.rmi.Door
+   */
+  public static Door[] getDoor(int[] number) throws RemoteException,
+      IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (number.length > numberOfElevators) throw new IllegalParamException();
+    Door[] door = new Door[number.length];
+    for (int i = 0; i < number.length; i++) door[i] = getDoor(i);
+    return door;
+  }
+  /**
+   * Returns an object with the <code>Doors</code> interface that
+   *    is used for controlling doors of elevators via Java RMI.
+   * @return An object with the <code>Doors</code> interface.
+   * @throws RemoteException if failed to get an <code>Doors</code> object.
+   * @see elevator.rmi.Doors
+   */
+  public static Doors getDoors() throws RemoteException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (doors == null) doors = getAll.getDoors();
+    return doors;
+  }
+  /**
+   * Returns an object with the <code>Elevator</code> interface
+   *    that is used for controlling all components (a motor, a door, a scale
+   *    and inside buttons listeners) of the elevator with the given number
+   *    via Java RMI.
+   * @param number The integer number of elevator whose <code>Elevator</code>
+   *     interface to get.
+   * @return An object with the <code>Elevator</code> interface.
+   * @throws RemoteException if failed to get an <code>Elevator</code> object.
+   * @throws IllegalParamException if <code>number</code> is not a legal
+   *    elevator number.
+   * @see elevator.rmi.Elevator
+   */
+  public static Elevator getElevator(int number) throws RemoteException, IllegalParamException {
+    if (number > numberOfElevators || number < 1) throw new IllegalParamException();
+    if (elevator == null) elevator = new Elevator[numberOfElevators];
+    if (elevator[number - 1] == null) elevator[number - 1] = getAll.getElevator(number);
+    return elevator[number - 1];
+  }
+  /**
+   * Returns an array of objects with the <code>Elevator</code>
+   *    interface which is used for controlling all components (a motor, a door,
+   *    a scale, and inside buttons listeners) of an elevators with a given
+   *    number via Java RMI.
+   * @param number An array of integer numbers of elevators whose
+   *     <code>Elevator</code> interfaces to get.
+   * @return An array of objects with the <code>Elevator</code> interface.
+   * @throws RemoteException if failed to get <code>Elevator</code> objects.
+   * @throws IllegalParamException if some number(s) in <code>number</code> is
+   *    not a legal elevator number.
+   * @see elevator.rmi.Elevator
+   */
+  public static Elevator[] getElevator(int[] number)
+      throws RemoteException, IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (number.length > numberOfElevators) throw new IllegalParamException();
+    Elevator[] elevator = new Elevator[number.length];
+    for (int i = 0; i < number.length; i++) elevator[i] = getElevator(i);
+    return elevator;
+  }
+  /**
+   * Returns an object with the <code>Elevators</code> interface that is
+   *    used for controlling all components (motors, doors, scales, and inside
+   *    button listeners) of all elevators via Java RMI.
+   * @return An object with the <code>Elevators</code> interface.
+   * @throws RemoteException if failed to get an <code>Doors</code> object.
+   * @see elevator.rmi.Elevators
+   */
+  public static Elevators getElevators() throws RemoteException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (elevators == null) elevators = getAll.getElevators();
+    return elevators;
+  }
+  /**
+   * Returns an object with the <code>FloorButtons</code> interface that is
+   *    used for adding action listeners with the
+   *    <code>RemoteActionListener</code> interface to process action events
+   *    from floor buttons via Java RMI.
+   * @return An object with the <code>FloorButtons</code> interface.
+   * @throws RemoteException if failed to get an <code>FloorButtons</code>
+   *    object.
+   * @see elevator.rmi.FloorButtons
+   */
+/*  public static FloorButtons getFloorButtons() throws RemoteException, IllegalParamException {
+    if (floorButtons == null) floorButtons = getAll.getFloorButtons();
+    return floorButtons;
+  }!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  /**
+   * Returns the total number of elevators.
+   * @return An interger number of elevators.
+   * @throws RemoteException is failed to execute
+   */
+  public static int getNumberOfElevators() throws RemoteException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    return numberOfElevators;
+  }
+  /**
+   * Returns the total number of floors.
+   * @return An interger number of floors.
+   * @throws RemoteException is failed to execute
+   */
+  public static int getNumberOfFloors() throws RemoteException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    return numberOfFloors;
+  }
+  /**
+   * Returns an object with the <code>Motor</code> interface which is
+   *    used for controlling a motor of the elevator with the given number
+   *    via Java RMI.
+   * @param number An integer number of elevator whose <code>Motor</code>
+   *     interface to get.
+   * @return An object with the <code>Motor</code> interface.
+   * @throws RemoteException if failed to get an <code>Motor</code> object.
+   * @throws IllegalParamException if <code>number</code> is not a legal
+   *    elevator number.
+   * @see elevator.rmi.Motor
+   */
+  public static Motor getMotor(int number) throws RemoteException, IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (number > numberOfElevators || number < 1) throw new IllegalParamException();
+    if (motor == null) motor = new Motor[numberOfElevators];
+    if (motor[number - 1] == null) motor[number - 1] = getAll.getMotor(number);
+    return motor[number - 1];
+  }
+  /**
+   * Returns an array of objects with the <code>Motor</code> interface which is
+   *    used for controlling a motor of the elevator with the given number
+   *    via Java RMI.
+   * @param number An array of integer numbers of elevators whose
+   *     <code>Motor</code> interfaces to get.
+   * @return An array of objects with the <code>Motor</code> interface.
+   * @throws RemoteException if failed to get <code>Motor</code> objects.
+   * @throws IllegalParamException if some number(s) in <code>number</code> is
+   *    not a legal elevator number.
+   * @see elevator.rmi.Motor
+   */
+  public static Motor[] getMotor(int[] number) throws RemoteException,
+        IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (number.length > numberOfElevators) throw new IllegalParamException();
+    Motor[] motor = new Motor[number.length];
+    for (int i = 0; i < number.length; i++) motor[i] = getMotor(i);
+    return motor;
+  }
+  /**
+   * Returns an object with the <code>Motors</code> interface that is
+   *    used for controlling motors of elevators via Java RMI.
+   * @return An object with the <code>Motors</code> interface.
+   * @throws RemoteException if failed to get an <code>Motors</code> object.
+   * @see elevator.rmi.Motors
+   */
+  public static Motors getMotors() throws RemoteException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (motors == null) motors = getAll.getMotors();
+    return motors;
+  }
+  /**
+   * Returns an object with the <code>Scale</code> interface which is
+   *    used for controlling a scale of the elevator with the given number
+   *    via Java RMI.
+   * @param number An integer number of elevator whose <code>Scale</code>
+   *     interface to get.
+   * @return An object with the <code>Scale</code> interface.
+   * @throws RemoteException if failed to get an <code>Scale</code> object.
+   * @throws IllegalParamException if <code>number</code> is not a legal
+   *    elevator number.
+   * @see elevator.rmi.Scale
+   */
+  public static Scale getScale(int number) throws RemoteException,
+        IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (number > numberOfElevators || number < 1) throw new IllegalParamException();
+    if (scale == null) scale = new Scale[numberOfElevators];
+    if (scale[number - 1] == null) scale[number - 1] = getAll.getScale(number);
+    return scale[number - 1];
+  }
+  /**
+   * Returns an array of objects with the <code>Scale</code>
+   *    interface which is used for controlling a scale of the elevator with
+   *    the given number via Java RMI.
+   * @param number An array of integer numbers of elevators whose
+   *     <code>Motor</code> interfaces to get.
+   * @return An array of objects with the <code>Scale</code> interface.
+   * @throws RemoteException if failed to get <code>Scale</code> objects.
+   * @throws IllegalParamException if some number(s) in <code>number</code> is
+   *    not a legal elevator number.
+   * @see elevator.rmi.Scale
+   */
+  public static Scale[] getScale(int[] number) throws RemoteException,
+        IllegalParamException, MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (number.length > numberOfElevators) throw new IllegalParamException();
+    Scale[] scale = new Scale[number.length];
+    for (int i = 0; i < number.length; i++) scale[i] = getScale(i);
+    return scale;
+  }
+  /**
+   * Returns an object with the <code>Scales</code> interface that is
+   *    used for controlling scales of elevators via Java RMI.
+   * @return An object with the <code>Scales</code> interface.
+   * @throws RemoteException if failed to get an <code>Scales</code> object.
+   * @see elevator.rmi.Scales
+   */
+  public static Scales getScales() throws RemoteException,
+          MalformedURLException, NotBoundException  {
+    if (getAll == null) init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+    if (scales == null) scales = getAll.getScales();
+    return scales;
+  }
+  /**
+   * Initializes the <code>MakeAll</code> class that provide RMI access to the
+   * Elevators application. The RMI registry host defaults to "localhost".
+   * The RMI registry port defaults to 1099.
+   * @throws RemoteException if failed contact the rmi registry.
+   * @throws MalformedURLException if the name of the Elevators proxy object
+   *      is not an appropriately formatted URL.
+   * @throws NotBoundException if failed to get a reference to the Elevators
+   *      proxy object
+   */
+  public static void init() throws RemoteException, MalformedURLException, NotBoundException {
+    init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+  }
+  /**
+   * Initializes the <code>MakeAll</code> class that provide RMI access to the
+   * Elevators application. The RMI registry host defaults to "localhost".
+   * @param port The number of the port on which the RMI registry accepts calls.
+   * @throws RemoteException if failed contact the rmi registry.
+   * @throws MalformedURLException if the name of the Elevators proxy object
+   *      is not an appropriately formatted URL.
+   * @throws NotBoundException if failed to get a reference to the Elevators
+   *      proxy object
+   */
+  public static void init(int port) throws RemoteException, MalformedURLException, NotBoundException {
+    init(host, port);
+  }
+  /**
+   * Initializes the <code>MakeAll</code> class that provide RMI access to the
+   * Elevators application. The RMI registry port defaults to 1099.
+   * @param host A name of the host where the RMI registry is located
+   * @throws RemoteException if failed contact the rmi registry.
+   * @throws MalformedURLException if the name of the Elevators proxy object
+   *      is not an appropriately formatted URL.
+   * @throws NotBoundException if failed to get a reference to the Elevators
+   *      proxy object
+   */
+  public static void init(String host) throws RemoteException, MalformedURLException, NotBoundException {
+    init(host, java.rmi.registry.Registry.REGISTRY_PORT);
+  }
+  /**
+   * Initializes the <code>MakeAll</code> class that provide RMI access to the
+   * Elevators application.
+   * @param host A name of the host where the RMI registry is located
+   * @param port The number of the port on which the RMI registry accepts calls.
+   * @throws RemoteException if failed contact the rmi registry.
+   * @throws MalformedURLException if the name of the Elevators proxy object
+   *      is not an appropriately formatted URL.
+   * @throws NotBoundException if failed to get a reference to the Elevators
+   *      proxy object
+   */
+  public static void init(String host, int port) throws RemoteException, MalformedURLException, NotBoundException {
+    if (host == null)
+      try {
+        host = java.net.InetAddress.getLocalHost().getHostAddress();
+      } catch (Exception e) {
+	// If that failed, at least try "" (localhost) anyway...
+	host = "";
+      }
+    getAll = (GetAll)Naming.lookup("//" + host + ":" + port + "/GetAll");
+    numberOfElevators = getAll.getNumberOfElevators();
+    numberOfFloors = getAll.getNumberOfFloors();
+    topFloor = getAll.getTopFloor();
+    groundFloor = getAll.getGroundFloor();
+  }
+}
