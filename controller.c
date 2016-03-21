@@ -471,7 +471,10 @@ void handle_scale(int cabin, int floor) {
 
 /**
  * Implementation of stop_queue
- * This is essentially a singly linked list.
+ * This is essentially a singly linked list which can store an 'infinite'
+ * amount of elements. In reality the list will how ever store at most 
+ * 14 elements (usually fewer) so the performance gain from implementing
+ * this as doubly linked list is virtually none.
  *
  * TODO: Move to a separate file
  */
@@ -506,7 +509,7 @@ int push_stop_queue(int floor,
                     int current_direction,
                     stop_queue* queue)
 {
-    node_stop_queue* new_node;
+    node_stop_queue *new_node, *curr_node;
 
     if ((new_node = (node_stop_queue*) malloc(sizeof(node_stop_queue))) == NULL)
         return 1;
@@ -519,10 +522,16 @@ int push_stop_queue(int floor,
     if (!queue->size)
         queue->first = new_node;
 
-    /* Put node in a sensible position */
+    /* 
+     * Put node in a sensible position 
+     * TODO: put new floor on a sensible position 
+     */
     else {
-        /* TODO: Finish  this */
-        queue->first = new_node;
+        curr_node = queue->first;
+        while (curr_node->next != NULL)
+            curr_node = curr_node->next;
+
+        curr_node->next = new_node; 
     }
 
     ++queue->size;
