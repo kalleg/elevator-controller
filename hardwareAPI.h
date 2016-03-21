@@ -23,12 +23,25 @@ typedef enum {
   CabinButton,
   Position,
   Speed,
+  Door,
   Error
 } EventType;
 typedef enum {
   GoingUp = 1,
   GoingDown = -1
 } FloorButtonType;
+
+//
+typedef enum {
+  DoorOpen = 1,
+  DoorStop = 0,
+  DoorClose = -1
+} DoorAction, DoorState;
+typedef enum {
+  MotorUp = 1,
+  MotorStop = 0,
+  MotorDown = -1
+} MotorAction;
 
 //
 typedef struct {
@@ -56,6 +69,7 @@ typedef union {
   CabinButtonPressDesc cbp;
   CabinPositionDesc cp;
   SpeedDesc s;
+  DoorState ds;
   ErrorDesc e;
 } EventDesc;
 
@@ -64,18 +78,6 @@ typedef union {
 // and fills the descriptor. There must not be more than one
 // 'waitForEvent()' running simultaneously;
 EventType waitForEvent(EventDesc *event);
-
-//
-typedef enum {
-  DoorOpen = 1,
-  DoorStop = 0,
-  DoorClose = -1
-} DoorAction;
-typedef enum {
-  MotorUp = 1,
-  MotorStop = 0,
-  MotorDown = -1
-} MotorAction;
 
 //
 // Primitives controlling the hardware (motors, doors & status

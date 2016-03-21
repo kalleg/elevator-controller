@@ -45,12 +45,41 @@ struct event_buffer {
     struct event event;
 } event_buffer;
 
-/* 
+/*
  * Definition of thread safe wrapper for elevator control functions.
  */
 void handle_door(int cabin, DoorAction action);
 void handle_motor(int cabin, MotorAction action);
 void handle_scale(int cabin, int floor);
+
+/*
+ * Stop queue
+ * Each elevator owns a stop_queue which contains the stops of the elevator.
+ *
+ * TODO: Move to a separate file
+ */
+typedef struct node_stop_queue {
+    int floor;
+    struct node_stop_queue* next;
+} node_stop_queue;
+
+typedef struct {
+    int size;
+    node_stop_queue* first;
+} stop_queue;
+
+stop_queue* new_stop_queue();
+int destroy_stop_queue(stop_queue*);
+
+int push_stop_queue(int floor,
+                    int current_floor,
+                    int current_direction,
+                    stop_queue* queue);
+int pop_stop_queue(stop_queue*);
+int peek_stop_queue(stop_queue*);
+
+int size_stop_queue(stop_queue*);
+
 
 /* Thread inter communications */
 
@@ -106,7 +135,7 @@ void parse_flags(int argc, char **argv,
                 verbose = 1;
             }
             else {
-                fprintf(stderr, "Unregocnized flag: %s - Exiting...\n", argv[i]);
+                fprintf(stderr, "Unrecognized flag: %s - Exiting...\n", argv[i]);
                 exit(1);
             }
         }
@@ -241,7 +270,7 @@ void *dispatcher(void *arg)
             if (verbose) {
                 printf("speed %f\n", event.desc.s.speed);
             }
-            
+
             /*
              * TODO: Examine if different strategies has to be implemented
              * depending on the elevators speeds. Perhaps breaking out the
@@ -253,6 +282,10 @@ void *dispatcher(void *arg)
         case Error:
                 printf("error: \"%s\"\n", event.desc.e.str);
             break;
+
+        default:
+            if (verbose)
+                printf("Received unknown event (type %d)\n", event.type);
         }
     }
 }
@@ -260,12 +293,20 @@ void *dispatcher(void *arg)
 /*
  * Function representing each elevator
  *
- * TODO: Handle event types
- * TODO: Respond to events
- * TODO: Global mutex for sending through API
+ * TODO: Nice way to kill elevators(?)
  */
 void *elevator(void *arg)
 {
+    struct event event;
+
+    int floor = 0,
+        next_floor = 0,
+        direction = 0;
+    stop_queue* queue = new_stop_queue();
+
+    DoorState door_state = DoorClose;
+    short floor_visited = 1;
+
     int id = (int)(long)arg;
 
     if (verbose)
@@ -278,19 +319,73 @@ void *elevator(void *arg)
 
         /* Handle all new events */
         while (elevator_event_buffer[id] != NULL) {
-            if (verbose)
-                printf("elevator %d received type %d\n", id,
-                        elevator_event_buffer[id]->event.type);
+            event = elevator_event_buffer[id]->event;
 
-            /* Kalles stuff to do */
+            if (verbose)
+                printf("elevator %d received type %d\n", id, event.type);
+
+            switch (event.type) {
+                case CabinButton:
+                    push_stop_queue(event.desc.cbp.floor,
+                                        floor, direction, queue);
+                    break;
+                case Position:
+                    floor = (int) event.desc.cp.position;
+                    break;
+                case Door:
+                    door_state = event.desc.ds;
+                    break;
+                default:
+                    if (verbose)
+                        printf("Elevator %d received unknown event (type %d)\n",
+                                id, event.type);
+            }
 
             /* Dequeue */
-            free(elevator_event_buffer[id]);
-            elevator_event_buffer[id] = elevator_event_buffer[id]->next;
+            free(elevator_event_buffer[id]);                                /* {  Fungerar verkligen detta?  */
+            elevator_event_buffer[id] = elevator_event_buffer[id]->next;    /* {  Borde det inte segfaulta?  */
         }
 
         pthread_mutex_unlock(&elevator_event_buffer_mutex[id]);
+
+        /* Elevator logic */
+        if (floor_visited) {
+            /* Update scale (floor indicator) */
+            handle_scale(id, floor);
+
+            next_floor = peek_stop_queue(queue);
+
+            /* Arrived at next floor stop (if moving) and open door */
+            if (floor-next_floor == 0) {
+                if (direction) handle_motor(id, 0);
+                handle_door(id, 1);
+                pop_stop_queue(queue);
+                floor_visited = 0;
+            }
+
+            /* Elevator is not moving, start motor */
+            else if (!direction) {
+                direction = next_floor-floor;
+                direction = direction/abs(direction);
+                handle_motor(id, direction);
+            }
+        }
+        else {
+            if (door_state == DoorOpen) {
+                sleep(5);
+                handle_door(id, -1);
+            }
+            else if (door_state == DoorClose)
+                floor_visited = 1;
+        }
     }
+
+    /*
+    while (size_stop_queue(queue))
+        pop_stop_queue(queue);
+
+    destroy_stop_queue(queue);
+    */
 }
 
 /*
@@ -349,17 +444,17 @@ void enqueue_event(int elevator, struct event *event)
 }
 
 
-/* 
+/*
  * Thread safe wrapper of elevator control functions.
- * The hardware API specifies that none these functions can be executed in 
+ * The hardware API specifies that none these functions can be executed in
  * parallel. Synchronization is achieved using api_send_mutex.
- * 
+ *
  * TODO: Make fair?
  */
 void handle_door(int cabin, DoorAction action) {
     pthread_mutex_lock(&api_send_mutex);
     handleDoor(cabin, action);
-    pthread_mutex_unlock(&api_send_mutex);    
+    pthread_mutex_unlock(&api_send_mutex);
 }
 
 void handle_motor(int cabin, MotorAction action) {
@@ -372,4 +467,100 @@ void handle_scale(int cabin, int floor) {
     pthread_mutex_lock(&api_send_mutex);
     handleScale(cabin, floor);
     pthread_mutex_unlock(&api_send_mutex);
+}
+
+/**
+ * Implementation of stop_queue
+ * This is essentially a singly linked list.
+ *
+ * TODO: Move to a separate file
+ */
+/* Returns a new initialized stop_queue */
+stop_queue* new_stop_queue()
+{
+    stop_queue* queue;
+
+    if ((queue = (stop_queue*) malloc(sizeof(stop_queue))) == NULL)
+        return NULL;
+
+    queue->first = NULL;
+    queue->size = 0;
+
+    return queue;
+}
+
+/* Destroys an empty stop_queue */
+int destroy_stop_queue(stop_queue* queue)
+{
+    if (size_stop_queue(queue))
+        return 1;
+
+    free(queue);
+
+    return 0;
+}
+
+/* Push a floor to stop_queue */
+int push_stop_queue(int floor,
+                    int current_floor,
+                    int current_direction,
+                    stop_queue* queue)
+{
+    node_stop_queue* new_node;
+
+    if ((new_node = (node_stop_queue*) malloc(sizeof(node_stop_queue))) == NULL)
+        return 1;
+
+    /* Set basic node properties */
+    new_node->floor = floor;
+    new_node->next = NULL;
+
+    /* Place node first if queue is empty */
+    if (!queue->size)
+        queue->first = new_node;
+
+    /* Put node in a sensible position */
+    else {
+        /* TODO: Finish  this */
+        queue->first = new_node;
+    }
+
+    ++queue->size;
+
+    return 0;
+}
+
+/* Removes and returns the floor of a stop_queue */
+int pop_stop_queue(stop_queue* queue)
+{
+    node_stop_queue* old_first;
+    int floor;
+
+    if (!queue->size)
+        return -1;
+
+    floor = queue->first->floor;
+
+    old_first = queue->first;
+    queue->first = old_first->next;
+    free(old_first);
+
+    --queue->size;
+
+    return floor;
+}
+
+/* Returns the floor of a stop_queue */
+int peek_stop_queue(stop_queue* queue)
+{
+    if (!queue->size)
+        return -1;
+
+    return queue->first->floor;
+}
+
+/* Returns the size of a stop_queue */
+int size_stop_queue(stop_queue* queue)
+{
+    return queue->size;
 }
