@@ -45,6 +45,13 @@ struct event_buffer {
     struct event event;
 } event_buffer;
 
+/* 
+ * Definition of thread safe wrapper for elevator control functions.
+ */
+void handle_door(int cabin, DoorAction action);
+void handle_motor(int cabin, MotorAction action);
+void handle_scale(int cabin, int floor);
+
 /* Thread inter communications */
 
 /*
@@ -221,7 +228,13 @@ void *dispatcher(void *arg)
                         (int) event.desc.cp.position);
             }
 
-            /* TODO: Route to correct elevator, no need to do anything else */
+            /* TODO: Set door open/closed status */
+
+            /* Forward elevator position */
+            enqueue_event(event.desc.cbp.cabin, &event);
+
+            /* Wake elevator to handle event */
+            pthread_cond_signal(&elevator_signal[event.desc.cbp.cabin]);
 
             break;
         case Speed:
@@ -265,8 +278,9 @@ void *elevator(void *arg)
 
         /* Handle all new events */
         while (elevator_event_buffer[id] != NULL) {
-            printf("elevator %d received type %d\n", id,
-                    elevator_event_buffer[id]->event.type);
+            if (verbose)
+                printf("elevator %d received type %d\n", id,
+                        elevator_event_buffer[id]->event.type);
 
             /* Kalles stuff to do */
 
@@ -332,4 +346,30 @@ void enqueue_event(int elevator, struct event *event)
     }
 
     pthread_mutex_unlock(&elevator_event_buffer_mutex[elevator]);
+}
+
+
+/* 
+ * Thread safe wrapper of elevator control functions.
+ * The hardware API specifies that none these functions can be executed in 
+ * parallel. Synchronization is achieved using api_send_mutex.
+ * 
+ * TODO: Make fair?
+ */
+void handle_door(int cabin, DoorAction action) {
+    pthread_mutex_lock(&api_send_mutex);
+    handleDoor(cabin, action);
+    pthread_mutex_unlock(&api_send_mutex);    
+}
+
+void handle_motor(int cabin, MotorAction action) {
+    pthread_mutex_lock(&api_send_mutex);
+    handleMotor(cabin, action);
+    pthread_mutex_unlock(&api_send_mutex);
+}
+
+void handle_scale(int cabin, int floor) {
+    pthread_mutex_lock(&api_send_mutex);
+    handleScale(cabin, floor);
+    pthread_mutex_unlock(&api_send_mutex);
 }
