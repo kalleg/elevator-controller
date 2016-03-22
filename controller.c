@@ -342,8 +342,10 @@ void *elevator(void *arg)
             }
 
             /* Dequeue */
-            free(elevator_event_buffer[id]);                                /* {  Fungerar verkligen detta?  */
-            elevator_event_buffer[id] = elevator_event_buffer[id]->next;    /* {  Borde det inte segfaulta?  */
+            struct event_buffer* tmp = elevator_event_buffer[id];
+            elevator_event_buffer[id] = elevator_event_buffer[id]->next;
+            if (tmp)
+                free(tmp);
         }
 
         pthread_mutex_unlock(&elevator_event_buffer_mutex[id]);
@@ -408,7 +410,7 @@ void enqueue_event(int elevator, struct event *event)
     if (event->type == Position) {
         /* Empty buffer */
         if (elevator_event_buffer[elevator] == NULL) {
-            elevator_event_buffer[elevator] = malloc(sizeof(elevator_event_buffer));
+            elevator_event_buffer[elevator] = malloc(sizeof(struct event_buffer));
             elevator_event_buffer[elevator]->next = NULL;
             elevator_event_buffer[elevator]->event = *event;
         } else {
