@@ -1,10 +1,10 @@
 /*
- * Controller for elevator api
+ * Controller for elevator API
  *
  * Authors: Rasmus Linusson <raslin@kth.se>
  *          Karl Gafvert <kalleg@kth.se>
  *
- * Last modified: 17/3-2016
+ * Last modified: 24/3-2016
  */
 
 #ifndef _REENTRANT
@@ -19,7 +19,7 @@
 
 #include "hardwareAPI.h"
 
-/* Worker funcktions */
+/* Worker functions */
 void *dispatcher(void *arg);
 void *elevator(void *arg);
 
@@ -33,12 +33,9 @@ struct event {
 /* Helper functions */
 void enqueue_event(int elevator, struct event *event);
 
-/* Flag for verbosity */
-short verbose = 0;
-
 /*
  * Linked buffer definition
- * Used to buffer commands to be processed independently by elvator
+ * Used to buffer commands to be processed independently by elevator
  */
 struct event_buffer {
     struct event_buffer *next;
@@ -80,17 +77,19 @@ int peek_stop_queue(stop_queue*);
 
 int size_stop_queue(stop_queue*);
 
+/* Flag for verbosity */
+short verbose = 0;
 
 /* Thread inter communications */
 
 /*
- * Calls to api functions are critical sections, need mutex to assure correct
+ * Calls to API functions are critical sections, need mutex to assure correct
  * execution.
  *
  * Each elevator thread will receive a unique conditional variable to wait upon
  * new commands and information to act upon
  *
- * These commands will be placed in shared address space while mutualy exluded
+ * These commands will be placed in shared address space while mutually excluded
  * using a elevator unique mutex
  */
 pthread_mutex_t api_send_mutex;
@@ -151,7 +150,7 @@ int main(int argc, char **argv)
 {
     long i;
 
-    /* Default connection info to java gui */
+    /* Default connection info to Java GUI */
     char *hostname = "127.0.0.1";
     short port = 4711;
     short num_elevators = 1;
@@ -176,7 +175,7 @@ int main(int argc, char **argv)
 
     /*
      * Spawn threads to handle elevators
-     * +1 for indexing resons and matching towards gui indicies
+     * +1 for indexing reasons and matching towards GUI indicates
      */
     threads = malloc((num_elevators+1)*sizeof(pthread_t));
 
@@ -203,7 +202,7 @@ int main(int argc, char **argv)
 }
 
 /*
- * Incomming interface with hardware.
+ * Incoming interface with hardware.
  *
  * Blocking on a tcp connection until message arrives.
  *
@@ -275,7 +274,7 @@ void *dispatcher(void *arg)
              * TODO: Examine if different strategies has to be implemented
              * depending on the elevators speeds. Perhaps breaking out the
              * calculations on which elevator is best fitted for handling
-             * a floor button request to a spearate thread is needed for
+             * a floor button request to a separate thread is needed for
              * higher speeds??
              */
             break;
@@ -391,9 +390,9 @@ void *elevator(void *arg)
 }
 
 /*
- * Add event to elevators event queue, typical linked list fifo implementation
+ * Add event to elevators event queue, typical linked list FIFO implementation
  *
- * If event is of type position, the queue is not considered fifo, old
+ * If event is of type position, the queue is not considered FIFO, old
  * positional values are worthless and should be discardevent.desc. So if any old
  * positional values are in the buffer, overwrite it. (Not implemented yet)
  *
