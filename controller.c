@@ -15,13 +15,15 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 #include <pthread.h>
 
 #include "hardwareAPI.h"
 
-/* Worker functions */
-void *dispatcher(void *arg);
-void *elevator(void *arg);
+/* Defines */
+#ifndef DIFF_AT_FLOOR
+#define DIFF_AT_FLOOR 0.05
+#endif
 
 
 /* Structure for passing events between threads */
@@ -29,9 +31,6 @@ struct event {
     EventType type;
     EventDesc desc;
 };
-
-/* Helper functions */
-void enqueue_event(int elevator, struct event *event);
 
 /*
  * Linked buffer definition
@@ -43,16 +42,7 @@ struct event_buffer {
 } event_buffer;
 
 /*
- * Definition of thread safe wrapper for elevator control functions.
- */
-void handle_door(int cabin, DoorAction action);
-void handle_motor(int cabin, MotorAction action);
-void handle_scale(int cabin, int floor);
-
-/*
- * Stop queue
- * Each elevator owns a stop_queue which contains the stops of the elevator.
- *
+ * Stop queue structures
  * TODO: Move to a separate file
  */
 typedef struct node_stop_queue {
@@ -65,17 +55,43 @@ typedef struct {
     node_stop_queue* first;
 } stop_queue;
 
+/* Structure for saving a partial state of an elevator */
+typedef struct
+{
+    double position;
+    stop_queue *queue;
+} elevator_information;
+
+
+/* Worker functions */
+void *dispatcher(void *arg);
+void *elevator(void *arg);
+
+/* Helper functions */
+void enqueue_event(int elevator, struct event *event);
+int distance_to_floor(int floor, elevator_information* info);
+
+/* Thread safe wrapper for elevator control functions */
+void handle_door(int cabin, DoorAction action);
+void handle_motor(int cabin, MotorAction action);
+void handle_scale(int cabin, int floor);
+
+/*
+ * Stop queue API
+ * TODO: Move to a separate file
+ */
 stop_queue* new_stop_queue();
 int destroy_stop_queue(stop_queue*);
 
-int push_stop_queue(int floor,
-                    int current_floor,
-                    int current_direction,
-                    stop_queue* queue);
-int pop_stop_queue(stop_queue*);
-int peek_stop_queue(stop_queue*);
+int push_stop_queue(int floor, double position, stop_queue* queue);
+int pop_stop_queue(stop_queue* q);
+int peek_stop_queue(stop_queue* q);
 
-int size_stop_queue(stop_queue*);
+int size_stop_queue(stop_queue* q);
+
+
+/* Elevator information global variable */
+elevator_information *elevator_info;
 
 /* Flag for verbosity */
 short verbose = 0;
@@ -173,6 +189,12 @@ int main(int argc, char **argv)
         pthread_cond_init(&elevator_signal[i], NULL);
     }
 
+    elevator_info = malloc((num_elevators+1)*sizeof(elevator_information));
+    for (i = 1; i <= num_elevators; i++) {
+        elevator_info[i].position = 0.0;
+        elevator_info[i].queue = new_stop_queue();
+    }
+
     /*
      * Spawn threads to handle elevators
      * +1 for indexing reasons and matching towards GUI indicates
@@ -252,11 +274,11 @@ void *dispatcher(void *arg)
             break;
         case Position:
             if (verbose) {
-                printf("cabin position: cabin %d, position %d\n", event.desc.cp.cabin,
-                        (int) event.desc.cp.position);
+                printf("cabin position: cabin %d, position %1.4f\n", event.desc.cp.cabin,
+                        event.desc.cp.position);
             }
 
-            /* TODO: Set door open/closed status */
+            /* TODO: Send door open/closed status */
 
             /* Forward elevator position */
             enqueue_event(event.desc.cbp.cabin, &event);
@@ -297,16 +319,15 @@ void *dispatcher(void *arg)
 void *elevator(void *arg)
 {
     struct event event;
+    double next_floor, diff_floor;
 
-    int floor = 0,
-        next_floor = 0,
-        direction = 0;
-    stop_queue* queue = new_stop_queue();
-
+    double position = 0.0;
+    int direction = 0;
     DoorState door_state = DoorClose;
     short floor_visited = 1;
 
     int id = (int)(long)arg;
+    stop_queue *queue = elevator_info[id].queue;
 
     if (verbose)
         printf("elevator %d up and running\n", id);
@@ -325,11 +346,10 @@ void *elevator(void *arg)
 
             switch (event.type) {
                 case CabinButton:
-                    push_stop_queue(event.desc.cbp.floor,
-                                        floor, direction, queue);
+                    push_stop_queue(event.desc.cbp.floor, position, queue);
                     break;
                 case Position:
-                    floor = (int) event.desc.cp.position;
+                    position = elevator_info[id].position = event.desc.cp.position;
                     break;
                 case Door:
                     door_state = event.desc.ds;
@@ -352,12 +372,17 @@ void *elevator(void *arg)
         /* Elevator logic */
         if (floor_visited) {
             /* Update scale (floor indicator) */
-            handle_scale(id, floor);
+            if (fabs(position-round(position)) < DIFF_AT_FLOOR)
+                handle_scale(id, (int) roundl(position));
 
-            next_floor = peek_stop_queue(queue);
+            next_floor = (double) peek_stop_queue(queue);
+            diff_floor = next_floor-position;
+
+            if (fabs(diff_floor) < DIFF_AT_FLOOR)
+                diff_floor = 0;
 
             /* Arrived at next floor stop (if moving) and open door */
-            if (floor-next_floor == 0) {
+            if (diff_floor == 0) {
                 if (direction) handle_motor(id, 0);
                 handle_door(id, 1);
                 pop_stop_queue(queue);
@@ -366,8 +391,7 @@ void *elevator(void *arg)
 
             /* Elevator is not moving, start motor */
             else if (!direction) {
-                direction = next_floor-floor;
-                direction = direction/abs(direction);
+                direction = (int) diff_floor/fabs(diff_floor);
                 handle_motor(id, direction);
             }
         }
@@ -452,28 +476,42 @@ void enqueue_event(int elevator, struct event *event)
  *
  * TODO: Make fair?
  */
-void handle_door(int cabin, DoorAction action) {
+void handle_door(int cabin, DoorAction action)
+{
     pthread_mutex_lock(&api_send_mutex);
     handleDoor(cabin, action);
     pthread_mutex_unlock(&api_send_mutex);
 }
 
-void handle_motor(int cabin, MotorAction action) {
+void handle_motor(int cabin, MotorAction action)
+{
     pthread_mutex_lock(&api_send_mutex);
     handleMotor(cabin, action);
     pthread_mutex_unlock(&api_send_mutex);
 }
 
-void handle_scale(int cabin, int floor) {
+void handle_scale(int cabin, int floor)
+{
     pthread_mutex_lock(&api_send_mutex);
     handleScale(cabin, floor);
     pthread_mutex_unlock(&api_send_mutex);
 }
 
+/*
+ * Calculate travel distance to given floor subject to a particular
+ * elevators state.
+ *
+ * TODO: Implement this
+ */
+int distance_to_floor(int floor, elevator_information* info)
+{
+    return -1;
+}
+
 /**
  * Implementation of stop_queue
  * This is essentially a singly linked list which can store an 'infinite'
- * amount of elements. In reality the list will how ever store at most 
+ * amount of elements. In reality the list will how ever store at most
  * 14 elements (usually fewer) so the performance gain from implementing
  * this as doubly linked list is virtually none.
  *
@@ -506,8 +544,7 @@ int destroy_stop_queue(stop_queue* queue)
 
 /* Push a floor to stop_queue */
 int push_stop_queue(int floor,
-                    int current_floor,
-                    int current_direction,
+                    double position,
                     stop_queue* queue)
 {
     node_stop_queue *new_node, *curr_node;
@@ -523,16 +560,16 @@ int push_stop_queue(int floor,
     if (!queue->size)
         queue->first = new_node;
 
-    /* 
-     * Put node in a sensible position 
-     * TODO: put new floor on a sensible position 
+    /*
+     * Put node in a sensible position
+     * TODO: put new floor on a sensible position
      */
     else {
         curr_node = queue->first;
         while (curr_node->next != NULL)
             curr_node = curr_node->next;
 
-        curr_node->next = new_node; 
+        curr_node->next = new_node;
     }
 
     ++queue->size;

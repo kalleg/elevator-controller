@@ -8,7 +8,7 @@
 # Compilation and linking flags
 CC = gcc
 CFLAGS = -Wall
-LDFLAGS = -lpthread
+LDFLAGS = -lpthread -lm
 
 # Release flags
 RLS_CFLAGS = -O4
