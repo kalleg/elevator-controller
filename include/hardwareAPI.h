@@ -36,7 +36,7 @@ typedef enum {
   DoorOpen = 1,
   DoorStop = 0,
   DoorClose = -1
-} DoorAction, DoorState;
+} DoorAction;
 typedef enum {
   MotorUp = 1,
   MotorStop = 0,
@@ -59,6 +59,10 @@ typedef struct {
 typedef struct {
   double speed;
 } SpeedDesc;
+typedef struct {
+    int cabin;
+    DoorAction state;
+} DoorState;
 typedef struct {
   // static memory - will be scrambled by the next waitForEvent;
   char *str;

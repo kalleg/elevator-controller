@@ -25,6 +25,8 @@
 #define DIFF_AT_FLOOR 0.05
 #endif
 
+/* Number times are position events sent to indicate the door opening */
+#define DOOR_OPENING_REPETITIONS 4
 
 /* Structure for passing events between threads */
 struct event {
@@ -62,6 +64,11 @@ typedef struct
     stop_queue *queue;
 } elevator_information;
 
+/* Structure for interpret door openings */
+struct door_state_counter {
+    double position;
+    short repetitions;
+};
 
 /* Worker functions */
 void *dispatcher(void *arg);
@@ -92,6 +99,8 @@ int size_stop_queue(stop_queue* q);
 
 /* Elevator information global variable */
 elevator_information *elevator_info;
+
+struct door_state_counter *door_state_counter;
 
 /* Flag for verbosity */
 short verbose = 0;
@@ -180,6 +189,7 @@ int main(int argc, char **argv)
     /* Init shared space variables */
     elevator_event_buffer_mutex = malloc((num_elevators+1)*sizeof(pthread_mutex_t));
     elevator_signal = malloc((num_elevators+1)*sizeof(pthread_cond_t));
+    door_state_counter = malloc((num_elevators+1)*sizeof(struct door_state_counter));
 
     elevator_event_buffer = malloc((num_elevators+1)*sizeof(struct event_buffer*));
     for (i = 1; i <= num_elevators; i++) {
@@ -193,6 +203,9 @@ int main(int argc, char **argv)
     for (i = 1; i <= num_elevators; i++) {
         elevator_info[i].position = 0.0;
         elevator_info[i].queue = new_stop_queue();
+
+        door_state_counter[i].position = elevator_info[i].position;
+        door_state_counter[i].repetitions = 0;
     }
 
     /*
@@ -278,10 +291,39 @@ void *dispatcher(void *arg)
                         event.desc.cp.position);
             }
 
-            /* TODO: Send door open/closed status */
+            /*
+             * Parse for door state changes
+             *
+             * This only reports door openings as I can not understand how to
+             * close the doors and proberly test it
+             *
+             * TODO: Flip the state and also send for door closings
+             */
+            if (door_state_counter[event.desc.cp.cabin].position == event.desc.cp.position) {
+                door_state_counter[event.desc.cp.cabin].repetitions++;
 
-            /* Forward elevator position */
-            enqueue_event(event.desc.cbp.cabin, &event);
+                if (door_state_counter[event.desc.cp.cabin].repetitions == DOOR_OPENING_REPETITIONS) {
+                    /* Door was probably opened */
+                    door_state_counter[event.desc.cp.cabin].repetitions = 0;
+
+                    /* Notify elevator of new door state */
+                    event.type = Door;
+
+                    /* Result of desc being a union, just being carefull */
+                    event.desc.ds.cabin = event.desc.cp.cabin;
+
+                    event.desc.ds.state = DoorOpen;
+                    enqueue_event(event.desc.ds.cabin, &event);
+                }
+            } else {
+                /* Forward elevator position */
+                enqueue_event(event.desc.cbp.cabin, &event);
+
+                /* Set new count */
+                door_state_counter[event.desc.cp.cabin].position == event.desc.cp.position;
+                door_state_counter[event.desc.cp.cabin].repetitions = 1;
+            }
+
 
             /* Wake elevator to handle event */
             pthread_cond_signal(&elevator_signal[event.desc.cbp.cabin]);
@@ -323,7 +365,13 @@ void *elevator(void *arg)
 
     double position = 0.0;
     int direction = 0;
-    DoorState door_state = DoorClose;
+    /*
+     * Unsure on how you'd like to handle this, I changed the DoorState
+     * definition to match the other events - this being impacted by that.
+     *
+     * DoorState door_state = DoorClose;
+     */
+    int door_state = DoorClose;
     short floor_visited = 1;
 
     int id = (int)(long)arg;
@@ -352,7 +400,7 @@ void *elevator(void *arg)
                     position = elevator_info[id].position = event.desc.cp.position;
                     break;
                 case Door:
-                    door_state = event.desc.ds;
+                    door_state = event.desc.ds.state;
                     break;
                 default:
                     if (verbose)
