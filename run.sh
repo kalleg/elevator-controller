@@ -27,7 +27,7 @@ done
 if [ ! -f './controller' -o $mk == 'true' ]; then
 	echo 'Make'
 	echo '--------------------------'
-    make clean all
+    make all
 fi
 
 if [ $? != 0 ]; then
@@ -36,6 +36,7 @@ if [ $? != 0 ]; then
 fi
 
 # Start elevator GUI
+echo ''
 echo 'Starting elevator GUI'
 echo '--------------------------'
 
@@ -43,7 +44,7 @@ java -jar $bin_elevator -tcp $elevators_arg_gui $top_floor_arg &
 gui_pid=$!
 echo "PID = $gui_pid"
 
-sleep 1
+sleep 2
 
 ps -p $gui_pid > /dev/null 2>&1
 if [ $? != 0 ]; then

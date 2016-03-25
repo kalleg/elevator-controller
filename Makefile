@@ -5,9 +5,14 @@
 #
 # Last modified: 17/03-2016
 
+# Directories
+DIR_SRC = ./
+DIR_OBJ = ./obj
+DIR_HEADERS = ./include
+
 # Compilation and linking flags
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -c -I$(DIR_HEADERS)
 LDFLAGS = -lpthread -lm
 
 # Release flags
@@ -16,25 +21,26 @@ RLS_CFLAGS = -O4
 # Debugging flags
 DBG_CFLAGS = -g
 
+# src and objs
+SRC_FLAT := $(shell find $(DIR_SRC) -maxdepth 1 -name '*.c' -printf '%P\n')
+OBJ := $(addprefix $(DIR_OBJ)/,$(SRC_FLAT:%.c=%.o))
+
 # Targets
 .PHONY: all debug clean
 
 # Compile with release flags
 all: CFLAGS += $(RLS_CFLAGS)
-all: controller 
+all: controller
 
 # Compile with debugging flags
 debug: CFLAGS += $(DBG_CFLAGS)
 debug: controller
 
-controller: api.o
-	$(CC) $(CFLAGS) -o $@ $@.c $< $(LDFLAGS)
+controller: $(OBJ)
+	$(CC) -o $@ $(OBJ) $(LDFLAGS) 
 
-test: api.o
-	$(CC) $(CFLAGS) -o $@ $@.c $< $(LDFLAGS)
-
-api.o:
-	$(CC) $(CFLAGS) -c -o $@ hardwareAPI.c
+$(DIR_OBJ)/%.o: $(DIR_SRC)/%.c
+	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
-	-rm -rf controller test *.o
+	-rm -rf controller test $(DIR_OBJ)/*.o
