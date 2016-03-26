@@ -76,7 +76,8 @@ void *elevator(void *arg);
 
 /* Helper functions */
 void enqueue_event(int elevator, struct event *event);
-int distance_to_floor(int floor, elevator_information* info);
+float distance_to_floor(int floor, elevator_information* info);
+int get_suitable_elevator(FloorButtonPressDesc *floor_button);
 
 /* Thread safe wrapper for elevator control functions */
 void handle_door(int cabin, DoorAction action);
@@ -98,6 +99,7 @@ int size_stop_queue(stop_queue* q);
 
 
 /* Elevator information global variable */
+short num_elevators = 0;
 elevator_information *elevator_info;
 
 struct door_state_counter *door_state_counter;
@@ -178,7 +180,6 @@ int main(int argc, char **argv)
     /* Default connection info to Java GUI */
     char *hostname = "127.0.0.1";
     short port = 4711;
-    short num_elevators = 1;
     short num_floors = 3;
 
     pthread_t* threads = NULL;
@@ -272,6 +273,14 @@ void *dispatcher(void *arg)
              * TODO: Call ranking function, compare socrese between possible
              * elevators, enqueue new destination event for the best elevator
              */
+
+            int e = get_suitable_elevator(&event.desc.fbp);
+
+            printf("found suitable elevator %d\n", e);
+
+            /* Send event to elevator */
+            enqueue_event(e, &event);
+
             break;
         case CabinButton:
             if (verbose) {
@@ -462,6 +471,35 @@ void *elevator(void *arg)
 }
 
 /*
+ * Ranking function
+ *
+ * Returns the index of the most suitable elevator to handle floor button press
+ */
+int get_suitable_elevator(FloorButtonPressDesc *floor_button)
+{
+    int i;
+    int elevator = 1;
+    int best_range = 0;
+
+    best_range = round(distance_to_floor(floor_button->floor, &elevator_info[1]));
+    for (i = 2; i <= num_elevators; i++) {
+        int current_range;
+
+        /* 
+         * First edition: Only count distance between elevator and floor
+         */
+        current_range = round(distance_to_floor(floor_button->floor, &elevator_info[i]));
+        
+        if (current_range < best_range) {
+            best_range = current_range;
+            elevator = i;
+        }
+    }
+
+    return elevator;
+}
+
+/*
  * Add event to elevators event queue, typical linked list FIFO implementation
  *
  * If event is of type position, the queue is not considered FIFO, old
@@ -551,9 +589,9 @@ void handle_scale(int cabin, int floor)
  *
  * TODO: Implement this
  */
-int distance_to_floor(int floor, elevator_information* info)
+float distance_to_floor(int floor, elevator_information* info)
 {
-    return -1;
+    return fabs((float)floor - (float)info->position);
 }
 
 /**
