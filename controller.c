@@ -68,6 +68,7 @@ typedef struct
 struct door_state_counter {
     double position;
     short repetitions;
+    int state;
 };
 
 /* Worker functions */
@@ -207,6 +208,7 @@ int main(int argc, char **argv)
 
         door_state_counter[i].position = elevator_info[i].position;
         door_state_counter[i].repetitions = 0;
+        door_state_counter[i].state = -1;
     }
 
     /*
@@ -300,20 +302,13 @@ void *dispatcher(void *arg)
                         event.desc.cp.position);
             }
 
-            /*
-             * Parse for door state changes
-             *
-             * This only reports door openings as I can not understand how to
-             * close the doors and proberly test it
-             *
-             * TODO: Flip the state and also send for door closings
-             */
+            /* Parse for door state changes */
             if (door_state_counter[event.desc.cp.cabin].position == event.desc.cp.position) {
                 door_state_counter[event.desc.cp.cabin].repetitions++;
 
                 if (door_state_counter[event.desc.cp.cabin].repetitions == DOOR_OPENING_REPETITIONS) {
                     /* Door was probably opened */
-                    door_state_counter[event.desc.cp.cabin].repetitions = 0;
+                    door_state_counter[event.desc.cp.cabin].repetitions = 1;
 
                     /* Notify elevator of new door state */
                     event.type = Door;
@@ -321,7 +316,9 @@ void *dispatcher(void *arg)
                     /* Result of desc being a union, just being carefull */
                     event.desc.ds.cabin = event.desc.cp.cabin;
 
-                    event.desc.ds.state = DoorOpen;
+                    event.desc.ds.state = door_state_counter[event.desc.ds.cabin].state * -1;
+                    door_state_counter[event.desc.ds.cabin].state *= -1;
+
                     enqueue_event(event.desc.ds.cabin, &event);
                 }
             } else {
@@ -329,7 +326,7 @@ void *dispatcher(void *arg)
                 enqueue_event(event.desc.cbp.cabin, &event);
 
                 /* Set new count */
-                door_state_counter[event.desc.cp.cabin].position == event.desc.cp.position;
+                door_state_counter[event.desc.cp.cabin].position = event.desc.cp.position;
                 door_state_counter[event.desc.cp.cabin].repetitions = 1;
             }
 
@@ -402,6 +399,9 @@ void *elevator(void *arg)
                 printf("elevator %d received type %d\n", id, event.type);
 
             switch (event.type) {
+                case FloorButton:
+                    push_stop_queue(event.desc.fbp.floor, position, queue);
+                    break;
                 case CabinButton:
                     push_stop_queue(event.desc.cbp.floor, position, queue);
                     break;
@@ -452,9 +452,9 @@ void *elevator(void *arg)
                 handle_motor(id, direction);
             }
         }
-        else {
+        /* else */ {
             if (door_state == DoorOpen) {
-                sleep(5);
+                sleep(3);
                 handle_door(id, -1);
             }
             else if (door_state == DoorClose)
