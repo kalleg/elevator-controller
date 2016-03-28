@@ -21,9 +21,7 @@
 #include "hardwareAPI.h"
 
 /* Defines */
-#ifndef DIFF_AT_FLOOR
 #define DIFF_AT_FLOOR 0.05
-#endif
 
 /* Number times are position events sent to indicate the door opening */
 #define DOOR_OPENING_REPETITIONS 4
@@ -79,6 +77,7 @@ void *elevator(void *arg);
 void enqueue_event(int elevator, struct event *event);
 float distance_to_floor(int floor, elevator_information* info);
 int get_suitable_elevator(FloorButtonPressDesc *floor_button);
+void printq(int id, stop_queue *q);
 
 /* Thread safe wrapper for elevator control functions */
 void handle_door(int cabin, DoorAction action);
@@ -283,6 +282,8 @@ void *dispatcher(void *arg)
             /* Send event to elevator */
             enqueue_event(e, &event);
 
+            /* Wake elevator to handle event */
+            pthread_cond_signal(&elevator_signal[e]);
             break;
         case CabinButton:
             if (verbose) {
@@ -359,10 +360,27 @@ void *dispatcher(void *arg)
     }
 }
 
+void printq(int id, stop_queue *q) {
+    printf("Queue %i: ", id);
+    
+    node_stop_queue* curr_node = q->first;
+    if (curr_node == NULL)
+        printf("no elements.");
+
+    else {
+        while (curr_node != NULL)  {
+            printf("%i, ", curr_node->floor);
+            curr_node = curr_node->next;
+        }
+    }
+    
+    printf("\n");
+}
+
 /*
  * Function representing each elevator
  *
- * TODO: Nice way to kill elevators(?)
+ * TODO: Handle cbp.floor=32000 (stop), Nice way to kill elevators(?)
  */
 void *elevator(void *arg)
 {
@@ -371,13 +389,7 @@ void *elevator(void *arg)
 
     double position = 0.0;
     int direction = 0;
-    /*
-     * Unsure on how you'd like to handle this, I changed the DoorState
-     * definition to match the other events - this being impacted by that.
-     *
-     * DoorState door_state = DoorClose;
-     */
-    int door_state = DoorClose;
+    int door_state = DoorStop;
     short floor_visited = 1;
 
     int id = (int)(long)arg;
@@ -401,9 +413,11 @@ void *elevator(void *arg)
             switch (event.type) {
                 case FloorButton:
                     push_stop_queue(event.desc.fbp.floor, position, queue);
+                    if (verbose) printq(id, queue);
                     break;
                 case CabinButton:
                     push_stop_queue(event.desc.cbp.floor, position, queue);
+                    if (verbose) printq(id, queue);
                     break;
                 case Position:
                     position = elevator_info[id].position = event.desc.cp.position;
@@ -435,27 +449,39 @@ void *elevator(void *arg)
             next_floor = (double) peek_stop_queue(queue);
             diff_floor = next_floor-position;
 
+            if (next_floor == -1)
+                continue;
+
             if (fabs(diff_floor) < DIFF_AT_FLOOR)
                 diff_floor = 0;
 
             /* Arrived at next floor stop (if moving) and open door */
             if (diff_floor == 0) {
-                if (direction) handle_motor(id, 0);
+                if (direction) {
+                    handle_motor(id, 0);
+                    direction = 0;
+                }
+                
                 handle_door(id, 1);
+                door_state = DoorStop;
+                
                 pop_stop_queue(queue);
+                if (verbose) printq(id, queue);
+
                 floor_visited = 0;
             }
 
             /* Elevator is not moving, start motor */
             else if (!direction) {
-                direction = (int) diff_floor/fabs(diff_floor);
+                direction = (int) lround(diff_floor/fabs(diff_floor));
                 handle_motor(id, direction);
             }
         }
-        /* else */ {
+        else {
             if (door_state == DoorOpen) {
                 sleep(3);
                 handle_door(id, -1);
+                door_state = DoorStop;
             }
             else if (door_state == DoorClose)
                 floor_visited = 1;
