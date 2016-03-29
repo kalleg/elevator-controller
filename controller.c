@@ -2,9 +2,9 @@
  * Controller for elevator API
  *
  * Authors: Rasmus Linusson <raslin@kth.se>
- *          Karl Gafvert <kalleg@kth.se>
+ *          Karl Gäfvert <kalleg@kth.se>
  *
- * Last modified: 24/3-2016
+ * Last modified: 29/3-2016
  */
 
 #ifndef _REENTRANT
@@ -100,6 +100,8 @@ int size_stop_queue(stop_queue* q);
 
 /* Elevator information global variable */
 short num_elevators = 0;
+short num_floors = 0;
+
 elevator_information *elevator_info;
 
 struct door_state_counter *door_state_counter;
@@ -128,8 +130,7 @@ pthread_cond_t *elevator_signal;
 struct event_buffer **elevator_event_buffer;
 
 /* Parse the command line arguments for operational flags */
-void parse_flags(int argc, char **argv,
-        char **hostname, short *port, short *num_elevators, short *num_floors)
+void parse_flags(int argc, char **argv, char **hostname, short *port)
 {
     int i;
 
@@ -145,11 +146,11 @@ void parse_flags(int argc, char **argv,
                 i++;                    /* Skip next position as it was a value */
             }
             else if (!strcmp(argv[i], "-f") || !strcmp(argv[i], "--floors")) {
-                *num_floors = atoi(argv[i+1]);
+                num_floors = atoi(argv[i+1]);
                 i++;                    /* Skip next position as it was a value */
             }
             else if (!strcmp(argv[i], "-e") || !strcmp(argv[i], "--elevators")) {
-                *num_elevators = atoi(argv[i+1]);
+                num_elevators = atoi(argv[i+1]);
                 i++;                    /* Skip next position as it was a value */
             }
             else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--verbose")) {
@@ -180,28 +181,26 @@ int main(int argc, char **argv)
     /* Default connection info to Java GUI */
     char *hostname = "127.0.0.1";
     short port = 4711;
-    short num_floors = 3;
 
     pthread_t* threads = NULL;
 
     /* Parse arguments */
-    parse_flags(argc, argv, &hostname, &port, &num_elevators, &num_floors);
+    parse_flags(argc, argv, &hostname, &port);
 
     /* Init shared space variables */
     elevator_event_buffer_mutex = malloc((num_elevators+1)*sizeof(pthread_mutex_t));
     elevator_signal = malloc((num_elevators+1)*sizeof(pthread_cond_t));
+
     door_state_counter = malloc((num_elevators+1)*sizeof(struct door_state_counter));
-
     elevator_event_buffer = malloc((num_elevators+1)*sizeof(struct event_buffer*));
-    for (i = 1; i <= num_elevators; i++) {
-        elevator_event_buffer[i] = NULL;
+    elevator_info = malloc((num_elevators+1)*sizeof(elevator_information));
 
+    for (i = 1; i <= num_elevators; i++) {
         pthread_mutex_init(&elevator_event_buffer_mutex[i], NULL);
         pthread_cond_init(&elevator_signal[i], NULL);
-    }
 
-    elevator_info = malloc((num_elevators+1)*sizeof(elevator_information));
-    for (i = 1; i <= num_elevators; i++) {
+        elevator_event_buffer[i] = NULL;
+
         elevator_info[i].position = 0.0;
         elevator_info[i].queue = new_stop_queue();
 
@@ -252,9 +251,7 @@ int main(int argc, char **argv)
  */
 void *dispatcher(void *arg)
 {
-    /* Buffers between socket and elevator-specific buffer */
-    EventType e;
-    EventDesc ed;
+    /* Buffer between socket and elevator-specific buffer */
     struct event event;
 
     if (verbose)
@@ -270,14 +267,10 @@ void *dispatcher(void *arg)
                         (int) event.desc.fbp.type);
             }
 
-            /*
-             * TODO: Call ranking function, compare socrese between possible
-             * elevators, enqueue new destination event for the best elevator
-             */
-
             int e = get_suitable_elevator(&event.desc.fbp);
 
-            printf("found suitable elevator %d\n", e);
+            if (verbose)
+                printf("found suitable elevator %d\n", e);
 
             /* Send event to elevator */
             enqueue_event(e, &event);
@@ -360,8 +353,11 @@ void *dispatcher(void *arg)
     }
 }
 
-void printq(int id, stop_queue *q) {
-    printf("Queue %i: ", id);
+/* Print stop queue for elevator id */
+void printq(int id, stop_queue *q)
+{
+    if (verbose)
+        printf("Queue %i: ", id);
     
     node_stop_queue* curr_node = q->first;
     if (curr_node == NULL)
@@ -655,9 +651,7 @@ int destroy_stop_queue(stop_queue* queue)
 }
 
 /* Push a floor to stop_queue */
-int push_stop_queue(int floor,
-                    double position,
-                    stop_queue* queue)
+int push_stop_queue(int floor, double position, stop_queue* queue)
 {
     node_stop_queue *new_node, *curr_node;
 
