@@ -75,7 +75,7 @@ void *elevator(void *arg);
 
 /* Helper functions */
 void enqueue_event(int elevator, struct event *event);
-int distance_to_floor(int floor, elevator_information* info);
+int distance_to_floor(FloorButtonPressDesc *floor_button, elevator_information* info);
 int get_suitable_elevator(FloorButtonPressDesc *floor_button);
 void printq(int id, stop_queue *q);
 
@@ -503,12 +503,12 @@ int get_suitable_elevator(FloorButtonPressDesc *floor_button)
     int elevator = 1;
     int best_range = 0;
 
-    best_range = round(distance_to_floor(floor_button->floor, &elevator_info[1]));
+    best_range = round(distance_to_floor(floor_button, &elevator_info[1]));
 
     for (i = 2; i <= num_elevators; i++) {
         int current_range;
 
-        current_range = distance_to_floor(floor_button->floor, &elevator_info[i]);
+        current_range = distance_to_floor(floor_button, &elevator_info[i]);
 
         if (current_range < best_range) {
             best_range = current_range;
@@ -613,41 +613,42 @@ void handle_scale(int cabin, int floor)
  * The number of stops is weighted more than travel distance as there is
  * a delay at each stop as to allow people to enter and exit the cabin
  *
- * TODO: Take floor button press's direction into account, now it's just the
- *       elevator that get's there fastest that till get the job
+ * TODO: Check for impacts of rounding when destination is the same as old_pos
+ *       as it gives false results
  */
-int distance_to_floor(int floor, elevator_information* info)
+int distance_to_floor(FloorButtonPressDesc *floor_button, elevator_information* info)
 {
     int score = 0;
     int num_stops = 0;
     int distance = 0;
+    FloorButtonType direction = floor_button->type;
+    int destination = floor_button->floor;
     int current_floor = round(info->position);
     int old_pos = current_floor;
     node_stop_queue *stop = info->queue->first;
 
     /* Base score if no planned stops */
     if (!stop)
-        distance = abs(floor - current_floor);
+        distance = abs(destination - current_floor);
 
-    /* Iterate all stops until posiible position for floor visit */
+    /* Iterate all stops until posiible position for destination visit */
     while (stop) {
-        if (old_pos - floor < 0) {                    /* Going downwards */
-            num_stops++;
-
-            /* Floor fits here in the stop queue, stop iterating */
-            if (stop->floor < floor) {
-                distance += abs(old_pos - floor);
-                break;
-            } else
-                distance += abs(old_pos - stop->floor);
-        } else {                                            /* Going upwards */
-            num_stops++;
-
-            /* Floor fits here in the stop queue, stop iterating */
-            if (stop->floor > floor) {
-                distance += abs(old_pos - floor);
+        if (old_pos - stop->floor < 0) {            /* Elevator going upwards */
+            /* destination fits here in the stop queue, stop iterating */
+            if (stop->floor > destination && direction == GoingUp) {
+                distance += abs(old_pos - destination);
                 break;
             } else {
+                num_stops++;
+                distance += abs(old_pos - stop->floor);
+            }
+        } else {                                    /* Elevator going downwards */
+            /* destination fits here in the stop queue, stop iterating */
+            if (stop->floor < destination && direction == GoingDown) {
+                distance += abs(old_pos - destination);
+                break;
+            } else {
+                num_stops++;
                 distance += abs(old_pos - stop->floor);
             }
         }
