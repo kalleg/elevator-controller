@@ -4,7 +4,7 @@
  * Authors: Rasmus Linusson <raslin@kth.se>
  *          Karl Gäfvert <kalleg@kth.se>
  *
- * Last modified: 29/3-2016
+ * Last modified: 31/3-2016
  */
 
 #ifndef _REENTRANT
@@ -91,7 +91,7 @@ void handle_scale(int cabin, int floor);
 stop_queue* new_stop_queue();
 int destroy_stop_queue(stop_queue*);
 
-int push_stop_queue(int floor, double position, stop_queue* queue);
+int push_stop_queue(int floor, int direction, double position, elevator_information* info);
 int pop_stop_queue(stop_queue* q);
 int peek_stop_queue(stop_queue* q);
 
@@ -408,11 +408,11 @@ void *elevator(void *arg)
 
             switch (event.type) {
                 case FloorButton:
-                    push_stop_queue(event.desc.fbp.floor, position, queue);
+                    push_stop_queue(event.desc.fbp.floor, (int) event.desc.fbp.type, position, &elevator_info[id]);
                     if (verbose) printq(id, queue);
                     break;
                 case CabinButton:
-                    push_stop_queue(event.desc.cbp.floor, position, queue);
+                    push_stop_queue(event.desc.cbp.floor, 0, position, &elevator_info[id]);
                     if (verbose) printq(id, queue);
                     break;
                 case Position:
@@ -496,6 +496,9 @@ void *elevator(void *arg)
  * Ranking function
  *
  * Returns the index of the most suitable elevator to handle floor button press
+ *
+ * TODO: Check for servicing the same floor (in the same direction) with
+ *       several elevators, might not be neccessary to send several eleveators?
  */
 int get_suitable_elevator(FloorButtonPressDesc *floor_button)
 {
@@ -697,8 +700,11 @@ int destroy_stop_queue(stop_queue* queue)
 }
 
 /* Push a floor to stop_queue */
-int push_stop_queue(int floor, double position, stop_queue* queue)
+int push_stop_queue(int floor, int direction, double position, elevator_information *info)
 {
+    int placed_floor = 0;
+    double old_pos = info->position;
+    stop_queue *queue = info->queue;
     node_stop_queue *new_node, *curr_node;
 
     if ((new_node = (node_stop_queue*) malloc(sizeof(node_stop_queue))) == NULL)
@@ -714,14 +720,61 @@ int push_stop_queue(int floor, double position, stop_queue* queue)
 
     /*
      * Put node in a sensible position
-     * TODO: put new floor on a sensible position
+     *
+     * TODO: Do not allow multiple consecutive stops at the same floor?
      */
     else {
         curr_node = queue->first;
-        while (curr_node->next != NULL)
-            curr_node = curr_node->next;
+        int elev_dir = (old_pos < curr_node->floor) ? 1 : -1;
 
-        curr_node->next = new_node;
+        /* Check if suitable first in queue */
+        if (elev_dir + direction > 0) {         /* Elevator going up */
+            /* If stop is inbetween */
+            if (old_pos < floor && floor < curr_node->floor) {
+                new_node->next = curr_node;
+                queue->first = new_node;
+                placed_floor = 1;
+            }
+        } else {                                /* Elevator going down */
+            if (curr_node->floor < floor && floor < old_pos) {
+                new_node->next = curr_node;
+                queue->first = new_node;
+                placed_floor = 1;
+            }
+        }
+
+        /* Check rest */
+        while (curr_node->next && !placed_floor) {
+            if (curr_node->floor > old_pos) {   /* Elevator going upwards */
+                if (curr_node->floor < floor && floor < curr_node->next->floor &&
+                        direction >= 0) {
+                    /* Place stop */
+
+                    new_node->next = curr_node->next;
+                    curr_node->next = new_node;
+                    placed_floor = 1;
+                    break;
+                }
+            } else {                            /* Elevator going downwards */
+                if (curr_node->floor > floor && floor > curr_node->next->floor &&
+                        direction <= 0) {
+                    /* Place stop */
+
+                    new_node->next = curr_node->next;
+                    curr_node->next = new_node;
+                    placed_floor = 1;
+                    break;
+                }
+            }
+
+            /* Iterate queue */
+            old_pos = curr_node->floor;
+            curr_node = curr_node->next;
+        }
+
+        /* If floor didn't fit yet, put last */
+        if (!placed_floor)
+            curr_node->next = new_node;
     }
 
     ++queue->size;
