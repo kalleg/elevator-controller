@@ -17,6 +17,7 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include "hardwareAPI.h"
 
@@ -99,6 +100,10 @@ int size_stop_queue(stop_queue* q);
 
 
 /* Elevator information global variable */
+short running = 1;
+pthread_mutex_t term_cnt_mutex;
+int num_terminated = 0;
+
 short num_elevators = 0;
 short num_floors = 0;
 
@@ -128,6 +133,17 @@ pthread_cond_t *elevator_signal;
 
 /* Elevator-independent buffer of events to be processed */
 struct event_buffer **elevator_event_buffer;
+
+/* Handle SIGTERM events */
+void sigterm_callback_handler(int signum) 
+{
+    if (verbose)
+        printf("Caught: %i\n", signum);
+
+    /* Flag for termination */
+    if (signum == SIGINT || signum == SIGTERM || signum == SIGKILL)
+        running = 0;
+}
 
 /* Parse the command line arguments for operational flags */
 void parse_flags(int argc, char **argv, char **hostname, short *port)
@@ -177,12 +193,17 @@ void parse_flags(int argc, char **argv, char **hostname, short *port)
 int main(int argc, char **argv)
 {
     long i;
+    struct event event;
 
     /* Default connection info to Java GUI */
     char *hostname = "127.0.0.1";
     short port = 4711;
 
     pthread_t* threads = NULL;
+
+    /* Init termination var and register signal handler (SIGTERM) */
+    signal(SIGINT, sigterm_callback_handler);
+    pthread_mutex_init(&term_cnt_mutex, NULL);
 
     /* Parse arguments */
     parse_flags(argc, argv, &hostname, &port);
@@ -234,6 +255,23 @@ int main(int argc, char **argv)
 
     /* Enter dispatcher function */
     dispatcher(NULL);
+
+    /* Send shutdown request and await termination of elevators */
+    event.type = Shutdown;
+
+    for (i = 1; i <= num_elevators; i++) {
+        enqueue_event(i, &event);
+        pthread_cond_signal(&elevator_signal[i]);
+    }
+    
+    while (num_terminated != num_elevators) sleep(1);
+
+    /* Kill elevator */
+    if (verbose)
+        printf("Shutting down GUI.\n");
+    
+    terminate();
+
     return 0;
 }
 
@@ -257,7 +295,7 @@ void *dispatcher(void *arg)
     if (verbose)
         printf("dispatcher up and running\n");
 
-    while (1) {
+    while (running) {
         event.type = waitForEvent(&event.desc);
 
         switch(event.type) {
@@ -351,6 +389,11 @@ void *dispatcher(void *arg)
                 printf("Received unknown event (type %d)\n", event.type);
         }
     }
+
+    if (verbose)
+        printf("Dispatcher has terminated.\n");
+
+    return ((void*) NULL);
 }
 
 /* Print stop queue for elevator id */
@@ -421,6 +464,12 @@ void *elevator(void *arg)
                 case Door:
                     door_state = event.desc.ds.state;
                     break;
+                case Shutdown:
+                    /* Yes I know it's a goto, but this might arguably its only 
+                       valid use and it's also far better than complicating the
+                       program logic. */
+                    goto shutdown;
+                    break;
                 default:
                     if (verbose)
                         printf("Elevator %d received unknown event (type %d)\n",
@@ -484,12 +533,21 @@ void *elevator(void *arg)
         }
     }
 
-    /*
+/* Shutdown and cleanup */
+shutdown:
     while (size_stop_queue(queue))
         pop_stop_queue(queue);
 
     destroy_stop_queue(queue);
-    */
+
+    pthread_mutex_lock(&term_cnt_mutex);
+    ++num_terminated;
+    pthread_mutex_unlock(&term_cnt_mutex);
+
+    if (verbose)
+        printf("Elevator %i has terminated.\n", id);
+
+    return ((void*) NULL);
 }
 
 /*

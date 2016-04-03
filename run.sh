@@ -61,4 +61,4 @@ echo '--------------------------'
 
 ./controller $verbose $elevators_arg_controller $floors_arg
 
-#echo $gui_pid > controller.pid
+#echo $! > controller.pid

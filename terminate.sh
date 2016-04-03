@@ -1,6 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 
+#kill -SIGINT `cat controller.pid`
 kill `cat gui.pid`
-#kill `cat controller.pid`
 sleep 1
 ps -f | grep -e "elevator" -e "controller"
+ 

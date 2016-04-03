@@ -24,7 +24,8 @@ typedef enum {
   Position,
   Speed,
   Door,
-  Error
+  Error,
+  Shutdown
 } EventType;
 typedef enum {
   GoingUp = 1,
