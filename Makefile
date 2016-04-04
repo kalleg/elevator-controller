@@ -9,11 +9,12 @@
 DIR_SRC = ./
 DIR_OBJ = ./obj
 DIR_HEADERS = ./include
+DIR_LIB = ./lib
 
 # Compilation and linking flags
 CC = gcc
 CFLAGS = -Wall -c -I$(DIR_HEADERS)
-LDFLAGS = -lpthread -lm
+LDFLAGS = -L$(DIR_LIB) -lpthread -lm -lrabbitmq
 
 # Release flags
 RLS_CFLAGS = -O4

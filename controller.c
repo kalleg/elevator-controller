@@ -18,6 +18,12 @@
 #include <math.h>
 #include <pthread.h>
 #include <signal.h>
+#include <time.h>
+
+#include <amqp.h>
+#include <amqp_framing.h>
+#include <amqp_tcp_socket.h>
+#include <rabbitmq_utils.h>
 
 #include "hardwareAPI.h"
 
@@ -98,6 +104,12 @@ int peek_stop_queue(stop_queue* q);
 
 int size_stop_queue(stop_queue* q);
 
+/* RabbitMQ helpers */
+void init_rabbitmq(int id, amqp_connection_state_t* conn);
+void terminate_rabbitmq(int id, amqp_connection_state_t* conn);
+void publish_rabbitmq(int id, amqp_connection_state_t *conn, char const *message);
+void send_message(int id, amqp_connection_state_t *conn, EventType type, short direction, 
+                  FloorButtonType floor_btn, int cabin_btn, double position, DoorAction door_motor);
 
 /* Elevator information global variable */
 short running = 1;
@@ -425,6 +437,7 @@ void *elevator(void *arg)
 {
     struct event event;
     double next_floor, diff_floor;
+    amqp_connection_state_t rabbitmq;
 
     double position = 0.0;
     int direction = 0;
@@ -436,6 +449,8 @@ void *elevator(void *arg)
 
     if (verbose)
         printf("elevator %d up and running\n", id);
+
+    init_rabbitmq(id, &rabbitmq);
 
     while (1) {
         /* Wait until message is received */
@@ -452,22 +467,33 @@ void *elevator(void *arg)
             switch (event.type) {
                 case FloorButton:
                     push_stop_queue(event.desc.fbp.floor, (int) event.desc.fbp.type, position, &elevator_info[id]);
-                    if (verbose) printq(id, queue);
+                    
+                    if (verbose) 
+                        printq(id, queue);
+
+                    send_message(id, &rabbitmq, event.type, 0, event.desc.fbp.floor, -1, position, door_state);
                     break;
                 case CabinButton:
                     push_stop_queue(event.desc.cbp.floor, 0, position, &elevator_info[id]);
-                    if (verbose) printq(id, queue);
+                    
+                    if (verbose) 
+                        printq(id, queue);
+                    
+                    send_message(id, &rabbitmq, event.type, 0, -1, event.desc.cbp.floor, position, door_state);
                     break;
                 case Position:
                     position = elevator_info[id].position = event.desc.cp.position;
+                    send_message(id, &rabbitmq, event.type, 0, -1, -1, position, door_state);
                     break;
                 case Door:
                     door_state = event.desc.ds.state;
+                    send_message(id, &rabbitmq, event.type, 0, -1, -1, position, door_state);
                     break;
                 case Shutdown:
                     /* Yes I know it's a goto, but this might arguably its only 
                        valid use and it's also far better than complicating the
                        program logic. */
+                    send_message(id, &rabbitmq, Shutdown, 0, -1, -1, position, door_state);
                     goto shutdown;
                     break;
                 default:
@@ -543,6 +569,8 @@ shutdown:
     pthread_mutex_lock(&term_cnt_mutex);
     ++num_terminated;
     pthread_mutex_unlock(&term_cnt_mutex);
+
+    terminate_rabbitmq(id, &rabbitmq);
 
     if (verbose)
         printf("Elevator %i has terminated.\n", id);
@@ -873,4 +901,112 @@ int peek_stop_queue(stop_queue* queue)
 int size_stop_queue(stop_queue* queue)
 {
     return queue->size;
+}
+
+
+/* RabbitMQ helpers */
+void init_rabbitmq(int id, amqp_connection_state_t *conn) 
+{
+    int status;
+    int port = 5672;
+    char const *hostname = "localhost";
+    amqp_socket_t *socket = NULL;
+
+    *conn = amqp_new_connection();
+
+    socket = amqp_tcp_socket_new(*conn);
+    if (!socket)
+        die("creating TCP socket");
+
+    status = amqp_socket_open(socket, hostname, port);
+    if (status)
+        die("opening TCP socket");
+
+    die_on_amqp_error(amqp_login(*conn, "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN, "", ""),
+                    "Logging in");
+    amqp_channel_open(*conn, id);
+    die_on_amqp_error(amqp_get_rpc_reply(*conn), "Opening channel");    
+}
+void terminate_rabbitmq(int id, amqp_connection_state_t *conn)
+{
+    die_on_amqp_error(amqp_channel_close(*conn, id, AMQP_REPLY_SUCCESS), "Closing channel");
+    die_on_amqp_error(amqp_connection_close(*conn, AMQP_REPLY_SUCCESS), "Closing connection");
+    die_on_error(amqp_destroy_connection(*conn), "Ending connection");
+}
+
+void publish_rabbitmq(int id, amqp_connection_state_t *conn, char const *message)
+{
+    char const *exchange = "druid.test";
+    char const *routingkey = "hc-sample";
+    
+    amqp_basic_properties_t props;
+    props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
+    props.content_type = amqp_cstring_bytes("text/plain");
+    props.delivery_mode = 2; /* persistent delivery mode */
+    
+    die_on_error(amqp_basic_publish(*conn,
+                                    id,
+                                    amqp_cstring_bytes(exchange),
+                                    amqp_cstring_bytes(routingkey),
+                                    1,
+                                    0,
+                                    &props,
+                                    amqp_cstring_bytes(message)),
+                 "Publishing");   
+}
+
+void send_message(int id, amqp_connection_state_t *conn, EventType type, short direction, 
+                  FloorButtonType floor_btn, int cabin_btn, double position, DoorAction door_motor)
+{
+    char *message = (char*) malloc(sizeof(char)*250);
+    char *type_s, *direction_s;
+
+    switch (type) {
+        case FloorButton:
+            type_s = "FloorButton";
+            break;
+        case CabinButton:
+            type_s = "CabinButton";
+            break;
+        case Position:
+            type_s = "Position";
+            break;
+        case Speed:
+            type_s = "Speed";
+            break;
+        case Door:
+            type_s = "Door";
+            break;
+        case Error:
+            type_s = "Error";
+            break;
+        case Shutdown:
+            type_s = "Shutdown";
+            break;
+        case Motor:
+            type_s = "Motor";
+            break;        
+        default:
+            type_s = "Unknown";
+    }
+
+    switch (direction) {
+        case 0:
+            direction_s = "to_controller";
+            break;
+        case 1:
+            direction_s = "from_controller";
+            break;
+        default:
+            direction_s = "Unknown";
+    }
+
+
+    sprintf(message, "{\"timestamp\":\"%li\", \"elevator_id\":\"%i\", \"type\":\"%s\", \"direction\":\"%s\", \"floor_btn\":%i, \"cabin_btn\":%i, \"position\":%.4f, \"door_motor\":%i}", 
+                            (long) time(NULL), id, type_s, direction_s, (int) floor_btn, (int) cabin_btn, position, door_motor);
+
+    publish_rabbitmq(id, conn, message);
+    // printf("%s", message);
+
+    free(message);
 }
