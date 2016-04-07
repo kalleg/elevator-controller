@@ -399,8 +399,10 @@ void *dispatcher(void *arg)
 /* Print stop queue for elevator id */
 void printq(int id, stop_queue *q)
 {
-    if (verbose)
-        printf("Queue %i: ", id);
+    if (!verbose)
+        return;
+
+    printf("Queue %i: ", id);
     
     node_stop_queue* curr_node = q->first;
     if (curr_node == NULL)
