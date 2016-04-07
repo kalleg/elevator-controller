@@ -421,7 +421,6 @@ void printq(int id, stop_queue *q)
 /*
  * Function representing each elevator
  *
- * TODO: Handle cbp.floor=32000 (stop), Nice way to kill elevators(?)
  */
 void *elevator(void *arg)
 {
@@ -432,6 +431,7 @@ void *elevator(void *arg)
     int direction = 0;
     int door_state = DoorStop;
     short floor_visited = 1;
+    short stop = 0;
 
     int id = (int)(long)arg;
     stop_queue *queue = elevator_info[id].queue;
@@ -457,8 +457,18 @@ void *elevator(void *arg)
                     if (verbose) printq(id, queue);
                     break;
                 case CabinButton:
+                    if (event.desc.cbp.floor == 32000) {
+                        stop = 1;
+                        break;
+                    }
+                    else if (stop == 1)
+                        stop = 0;
+                    
                     push_stop_queue(event.desc.cbp.floor, 0, position, &elevator_info[id]);
-                    if (verbose) printq(id, queue);
+
+                    if (verbose) 
+                        printq(id, queue);
+            
                     break;
                 case Position:
                     position = elevator_info[id].position = event.desc.cp.position;
@@ -489,6 +499,15 @@ void *elevator(void *arg)
 
         /* Elevator logic */
         if (floor_visited) {
+            if (stop) {
+                if (direction) {
+                    handle_motor(id, 0);
+                    direction = 0;
+                }
+
+                continue;
+            }
+
             /* Update scale (floor indicator) */
             if (fabs(position-round(position)) < DIFF_AT_FLOOR)
                 handle_scale(id, (int) roundl(position));
@@ -525,6 +544,7 @@ void *elevator(void *arg)
             }
         }
         else {
+            /* Handle closing doors */
             if (door_state == DoorOpen) {
                 sleep(3);
                 handle_door(id, -1);
@@ -729,7 +749,7 @@ int distance_to_floor(FloorButtonPressDesc *floor_button, elevator_information* 
  * 
  * This is essentially a singly linked list which can store an 'infinite'
  * amount of elements. In reality the list will how ever store at most
- * 14 elements (usually fewer) so the performance gain from implementing
+ * a few elements (usually fewer) so the performance gain from implementing
  * this as doubly linked list is virtually none.
  *
  * TODO: Move to a separate file
