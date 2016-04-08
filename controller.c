@@ -21,11 +21,20 @@
 
 #include "hardwareAPI.h"
 
-/* Defines */
+/* Elevator has arrived at next floor if abs(position-next_floor) 
+   is smaller than this interval */
 #define DIFF_AT_FLOOR 0.05
 
 /* Number times are position events sent to indicate the door opening */
 #define DOOR_OPENING_REPETITIONS 4
+
+/* Weights for elevator score function */
+#ifndef SCORE_WEIGHT_DISTANCE
+#define SCORE_WEIGHT_DISTANCE 1
+#endif
+#ifndef SCORE_WEIGHT_STOPS
+#define SCORE_WEIGHT_STOPS 3
+#endif
 
 /* Structure for passing events between threads */
 struct event {
@@ -243,6 +252,10 @@ int main(int argc, char **argv)
         }
     }
 
+    if (verbose) 
+        printf("Score function weights:\nweigth_distance = %i\nweigth_stops = %i\n", 
+               SCORE_WEIGHT_DISTANCE, SCORE_WEIGHT_STOPS);
+    
     printf("Init connection to \"hardware\"\n");
     fflush(stdout);
 
@@ -740,7 +753,7 @@ int distance_to_floor(FloorButtonPressDesc *floor_button, elevator_information* 
         stop = stop->next;
     }
 
-    score = distance + num_stops*3;
+    score = distance*SCORE_WEIGHT_DISTANCE + num_stops*SCORE_WEIGHT_STOPS;
     return score;
 }
 

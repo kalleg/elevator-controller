@@ -11,14 +11,18 @@ elevators_arg_gui=''
 elevators_arg_controller=''
 top_floor_arg=''
 floors_arg=''
+weigth_distance_arg=''
+weigth_stops_arg=''
 
 # Get arguments
-while getopts 'mve:f:' flag; do
+while getopts 'mve:f:d:s:' flag; do
   case "${flag}" in
     m) mk='true' ;;
     v) verbose='-v' ;;
     e) elevators_arg_gui="-number ${OPTARG}"; elevators_arg_controller="-e ${OPTARG}" ;;
     f) top_floor_arg="-top $((${OPTARG}-1))"; floors_arg="-f ${OPTARG}" ;;
+    d) weigth_distance_arg="WDISTANCE=${OPTARG}" ;;
+    s) weigth_stops_arg="WSTOPS=${OPTARG}" ;;
     *) echo 'Exiting script!'; exit 1 ;;
   esac
 done
@@ -27,7 +31,11 @@ done
 if [ ! -f './controller' -o $mk == 'true' ]; then
 	echo 'Make'
 	echo '--------------------------'
+  if [ weigth_distance_arg != '' -o weigth_stops_arg != '' ]; then
+    make clean all $weigth_distance_arg $weigth_stops_arg
+  else
     make all
+  fi
 fi
 
 if [ $? != 0 ]; then

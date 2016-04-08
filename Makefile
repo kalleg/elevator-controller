@@ -15,6 +15,14 @@ CC = gcc
 CFLAGS = -Wall -c -I$(DIR_HEADERS)
 LDFLAGS = -lpthread -lm
 
+ifdef WDISTANCE
+CFLAGS += -DSCORE_WEIGHT_DISTANCE=$(WDISTANCE)
+endif
+ifdef WSTOPS
+CFLAGS += -DSCORE_WEIGHT_STOPS=$(WSTOPS)
+endif
+
+
 # Release flags
 RLS_CFLAGS = -O4
 
