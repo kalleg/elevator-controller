@@ -4,7 +4,7 @@
 # A tcp-based multi-threaded elevator controller implemented in C using
 # the pthreads API
 # 
-# Author: Karl Gävert <kalleg@kth.se>
+# Author: Kalle Gäfvert <kgafvert@kth.se>
 #         Rasmus Linusson <raslin@kth.se>
 #
 # Project for course ID1217 at KTH
